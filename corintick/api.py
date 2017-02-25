@@ -1,0 +1,3 @@
+
+class Corintick:
+    pass
