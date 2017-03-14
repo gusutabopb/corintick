@@ -4,7 +4,7 @@ Contains all the serialization/compression related functions
 import warnings
 import lz4
 import hashlib
-from typing import Iterable
+from typing import Iterable, Sequence
 from io import BytesIO
 from collections import OrderedDict
 
@@ -15,7 +15,7 @@ import pandas as pd
 from .utils import make_logger
 
 logger = make_logger(__name__)
-
+MAX_DF_SIZE = 32 * 1024.0 ** 2  # 32 MB
 
 def _serialize_array(arr: np.ndarray) -> bytes:
     """
@@ -125,3 +125,9 @@ def build_dataframe(docs: Iterable[SON]) -> pd.DataFrame:
     """
     df: pd.DataFrame = pd.concat([_build_dataframe(doc) for doc in docs])
     return df.sort_index()
+
+
+def split_dataframes(large_df: pd.DataFrame, size=MAX_DF_SIZE) -> Sequence[pd.DataFrame]:
+    mem_usage = large_df.memory_usage().sum()
+    split_num = np.ceil(mem_usage / size)
+    return np.array_split(large_df, split_num)

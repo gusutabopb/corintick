@@ -8,7 +8,7 @@ from pymongo import IndexModel
 import pandas as pd
 from bson import SON, CodecOptions
 
-from .serialization import make_bson_doc
+from .serialization import make_bson_doc, split_dataframes
 from .utils import make_logger
 
 logger = make_logger(__name__)
