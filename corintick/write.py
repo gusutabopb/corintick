@@ -4,6 +4,7 @@ Functions for writing data to Corintick
 
 import pymongo
 
+from pymongo import IndexModel
 import pandas as pd
 from bson import SON, CodecOptions
 
@@ -18,7 +19,17 @@ class Writer:
         self.client = client or pymongo.MongoClient()
         self.db = self.client.get_database(dbname)
         self.bucket = self.db.get_collection(bucket)
-        self.meta = self.db.get_collection(f'{bucket}.meta')
+        self._make_indexes()
+
+    def _make_indexes(self):
+        """
+        Makes indexes used by Corintick.
+        Metadata is not used for querying and therefore not indexed.
+        Making `ix1` unique is meant to avoid accidentaly inserting duplicate documents.
+        """
+        ix1 = IndexModel([('uid', 1), ('start', -1), ('end', -1)], unique=True, name='default')
+        ix2 = IndexModel([('uid', 1), ('end', -1), ('start', -1)], name='reverse')
+        self.bucket.create_indexes([ix1, ix2])
 
     def write(self, uid, df, **metadata):
         doc = make_bson_doc(uid, df, **metadata)
