@@ -23,4 +23,21 @@ class Writer:
     def write(self, uid, df, **metadata):
         doc = make_bson_doc(uid, df, **metadata)
         self.bucket.insert_one(doc)
+    def bulk_write(self, it: Iterable) -> BulkWriteResult:
+        """
+        Takes an iterable which returns a (uid, df, metadata) tuple every iteration.
+        See `corintick.Writer.write` docstring for tuple object types.
+        This function can be used with simple lists or more complex generator objects.
+
+        :param it: Iterator containing data to be inserted
+        :return: None
+        """
+        bulk = self.bucket.initialize_ordered_bulk_op()
+        for data in it:
+            uid, df, metadata = data
+            for sub_df in split_dataframes(df):
+                doc = make_bson_doc(uid, sub_df, **metadata)
+                bulk.insert(doc)
+        result = bulk.execute()
+        return result
 
