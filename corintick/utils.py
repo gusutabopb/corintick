@@ -1,8 +1,13 @@
+import os
 import logging
+
+LOG_DIR = './log'
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
 
 def make_logger(name, fname=None) -> logging.Logger:
     if fname is None:
-        fname = name + '.log'
+        fname = '{}/{}.log'.format(LOG_DIR, name)
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s')

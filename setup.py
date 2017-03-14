@@ -6,10 +6,8 @@ from setuptools.command.install import install
 if sys.version_info.major != 3:
     sys.exit('Support Python 3 only')
 
-
-class Installer(install):
+# class Installer(install):
     pass
-
 
 with open('README.md', 'r') as f:
     long_description = f.read()
@@ -22,7 +20,7 @@ setup(name='corintick',
       author_email='gusutabopb@gmail.com',
       url='https://github.com/gusutabopb/corintick',
       packages=['corintick'],
-      cmdclass={'install': Installer},
+      # cmdclass={'install': Installer},
       license='GPL',
       install_requires=['lz4',
                         'pandas>=0.19',
