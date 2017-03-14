@@ -64,9 +64,9 @@ def make_bson_doc(uid: str, df: pd.DataFrame, **metadata) -> SON:
     """
     Takes a DataFrame and makes a BSON document ready to be inserted
     into MongoDB. Given Conritick's focus on timeseries data, the input
-    DataFrame is assumed to have a sorted DatetimeIndex and non-compling
-    data however that is not strictly mandatory. Column name data is kept, but index
-    name data is explicitly discarded and not saved.
+    DataFrame is assumed to have a sorted DatetimeIndex, however,
+    that is not strictly mandatory (but may lead to some unforeseen bugs).
+    Column name data is kept, but index name data is explicitly discarded and not saved.
 
     The output BSON document can't be larger than 16 MB, so the input DataFrame
     should take that into consideration. Use `pandas.DataFrame.memory_usage().sum()`
@@ -119,7 +119,7 @@ def _build_dataframe(doc: SON) -> pd.DataFrame:
 
 def build_dataframe(docs: Iterable[SON]) -> pd.DataFrame:
     """
-    Concatenates multiple documents corresponding to the same
+    Concatenates multiple documents of the same DataFrame
     :param docs:
     :return:
     """

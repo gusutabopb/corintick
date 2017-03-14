@@ -2,10 +2,13 @@
 Functions for writing data to Corintick
 """
 
-import pymongo
+from typing import Iterable
 
+import pymongo
 from pymongo import IndexModel
+from pymongo.results import InsertOneResult, BulkWriteResult
 import pandas as pd
+import numpy as np
 from bson import SON, CodecOptions
 
 from .serialization import make_bson_doc, split_dataframes
@@ -31,9 +34,20 @@ class Writer:
         ix2 = IndexModel([('uid', 1), ('end', -1), ('start', -1)], name='reverse')
         self.bucket.create_indexes([ix1, ix2])
 
-    def write(self, uid, df, **metadata):
+    def write(self, uid: str, df: pd.DataFrame, **metadata) -> InsertOneResult:
+        """
+        Writes a single timeseries DataFrame to Corintick.
+
+        :param uid: String-like unique identifier for the timeseries
+        :param df: DataFrame representing a timeseries segment
+        :param metadata: Dictionary-like object containing metadata about
+                         the underlying data, such as data source, etc.
+        :return: None
+        """
         doc = make_bson_doc(uid, df, **metadata)
-        self.bucket.insert_one(doc)
+        result = self.bucket.insert_one(doc)
+        return result
+
     def bulk_write(self, it: Iterable) -> BulkWriteResult:
         """
         Takes an iterable which returns a (uid, df, metadata) tuple every iteration.

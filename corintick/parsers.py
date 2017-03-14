@@ -3,10 +3,10 @@ Insert stuff that gets that from a source and returns a
  ready-to compress DataFrame. This functionality can (should?)
  be implemented on the data source side (repo).
 """
-import pymongo
 import re
 import itertools
 
+import pymongo
 import pandas as pd
 import numpy as np
 
@@ -16,7 +16,7 @@ class BFSnapshotParser:
     cols = list(itertools.chain(*cols))
 
     def __init__(self):
-        db = pymongo.MongoClient('localhost', 27025, connect=False).btc
+        db = pymongo.MongoClient('localhost', 27017, connect=False).btc
         snaps = db['lightning_board_snapshot_BTC_JPY'].find()
         self._data = pd.concat([self.make_row(snap) for snap in snaps], axis=1).T
         self._data.columns = self.cols
