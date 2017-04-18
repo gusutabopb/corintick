@@ -1,5 +1,5 @@
-from .read import Reader
-from .write import Writer
+from .corintick import Corintick
 
-read = Reader().read
-write = Writer().write
+api = Corintick()
+read = api.read
+write = api.write
