@@ -40,7 +40,7 @@ def _deserialize_array(data: bytes) -> np.ndarray:
     """
     Takes raw binary compressesed/serialized retrieved from MongoDB
     and decompresses/deserializes it, returning the original Numpy array
-    :param data: Input binary data
+    :param data: Input binary streamers
     :return: Numpy array
     """
     return np.load(BytesIO(lz4.decompress(data)))
@@ -49,24 +49,24 @@ def _deserialize_array(data: bytes) -> np.ndarray:
 def _make_bson_column(col: pd.Series) -> dict:
     """
     Compresses dataframe's column/index and returns a dictionary
-    with BSON blob column data and some metadata.
-    :param arr: Input column data
-    :return: Column data dictionary
+    with BSON blob column streamers and some metadata.
+    :param arr: Input column streamers
+    :return: Column streamers dictionary
     """
     data = Binary(_serialize_array(col.values))
     sha1 = Binary(hashlib.sha1(data).digest())
     dtype = str(col.dtype)
     size = len(data)
-    return {'data': data, 'dtype': dtype, 'sha1': sha1, 'size': size}
+    return {'streamers': data, 'dtype': dtype, 'sha1': sha1, 'size': size}
 
 
 def make_bson_doc(uid: str, df: pd.DataFrame, **metadata) -> SON:
     """
     Takes a DataFrame and makes a BSON document ready to be inserted
-    into MongoDB. Given Conritick's focus on timeseries data, the input
+    into MongoDB. Given Conritick's focus on timeseries streamers, the input
     DataFrame is assumed to have a sorted DatetimeIndex, however,
     that is not strictly mandatory (but may lead to some unforeseen bugs).
-    Column name data is kept, but index name data is explicitly discarded and not saved.
+    Column name streamers is kept, but index name streamers is explicitly discarded and not saved.
 
     The output BSON document can't be larger than 16 MB, so the input DataFrame
     should take that into consideration. Use `pandas.DataFrame.memory_usage().sum()`
@@ -89,7 +89,7 @@ def make_bson_doc(uid: str, df: pd.DataFrame, **metadata) -> SON:
 
     nrows = len(df)
     col_data_size = sum([columns[col]['size'] for col in df.columns])
-    logger.info(f'Column data size: {col_data_size:,} bytes / {nrows}')
+    logger.info(f'Column streamers size: {col_data_size:,} bytes / {nrows}')
     metadata.update({'nrows': nrows, 'binary_size': col_data_size})
 
     doc = SON([
@@ -110,8 +110,8 @@ def _build_dataframe(doc: SON) -> pd.DataFrame:
     :param doc: BSON document
     :return: DataFrame
     """
-    index = pd.Index(_deserialize_array(doc['index']['data']))
-    columns = [_deserialize_array(col['data']) for col in doc['columns'].values()]
+    index = pd.Index(_deserialize_array(doc['index']['streamers']))
+    columns = [_deserialize_array(col['streamers']) for col in doc['columns'].values()]
     names = doc['columns'].keys()
     df = pd.DataFrame(index=index, data=OrderedDict(zip(names, columns)))
     return df

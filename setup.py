@@ -6,7 +6,7 @@ from setuptools.command.install import install
 if sys.version_info.major != 3:
     sys.exit('Support Python 3 only')
 
-# class Installer(install):
+class Installer(install):
     pass
 
 with open('README.md', 'r') as f:
@@ -14,7 +14,7 @@ with open('README.md', 'r') as f:
 
 setup(name='corintick',
       version='0.1.0',
-      description='Column-based datastore for historical timeseries data',
+      description='Column-based datastore for historical timeseries streamers',
       long_description=long_description,
       author='Gustavo Bezerra',
       author_email='gusutabopb@gmail.com',
