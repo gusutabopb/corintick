@@ -10,20 +10,27 @@ from pymongo import IndexModel
 from pymongo.results import InsertOneResult, BulkWriteResult
 
 from . import serialization
-from .utils import make_logger
+from . import utils
 
-logger = make_logger(__name__)
+logger = utils.make_logger(__name__)
 opts = CodecOptions(document_class=SON)
-MAX_DOCS = 10
 
 
 class Corintick:
-    def __init__(self, client=None, dbname='corintick', bucket='corintick'):
-        self.client = client or pymongo.MongoClient()
-        self.db = self.client.get_database(dbname)
-        self.bucket = self.db.get_collection(bucket).with_options(opts)
+    MAX_DOCS = 10
+
+    def __init__(self, config=None):
+        self.config = utils.load_config(config)
+        self.client = pymongo.MongoClient(**self.config['host'])
+        if 'auth' in self.config:
+            self.client.admin.authenticate(**self.config['auth'])
+        self.db = self.client.get_database(**self.config['database'])
+        self.bucket = self.db.get_collection(self.buckets[0]).with_options(opts)
         self._make_indexes()
-        self.MAX_DOCS = MAX_DOCS
+
+    @property
+    def buckets(self):
+        return self.config['buckets']
 
     def _query(self, uid, start, end, columns, **metadata):
         # The following represent docs 1) containing query start,

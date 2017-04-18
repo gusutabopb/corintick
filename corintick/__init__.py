@@ -1,5 +1,6 @@
 from .corintick import Corintick
 
-api = Corintick()
-read = api.read
-write = api.write
+if __name__ == '__main__':
+    api = Corintick()
+    read = api.read
+    write = api.write

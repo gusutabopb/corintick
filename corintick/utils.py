@@ -1,13 +1,16 @@
-import os
 import logging
+import os
 
-LOG_DIR = './log'
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
+import yaml
+
+LOG_DIR = os.path.expanduser('~/plugaai/_logs')
+
 
 def make_logger(name, fname=None) -> logging.Logger:
     if fname is None:
-        fname = '{}/{}.log'.format(LOG_DIR, name)
+        if not os.path.exists(LOG_DIR):
+            os.makedirs(LOG_DIR)
+        fname = os.path.join(LOG_DIR, f'{name}.log')
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s')
@@ -23,3 +26,18 @@ def make_logger(name, fname=None) -> logging.Logger:
     logger.addHandler(stream_handler)
 
     return logger
+
+logger = make_logger(__name__)
+
+
+def load_config(config_path):
+    if config_path is None:
+        return {'host': {},
+                'database': {'name': 'corintick'},
+                'buckets': ['corintick']}
+    config = yaml.load(open(os.path.expanduser(config_path)))
+    config_keys = {'host', 'database', 'buckets'}
+    if config_keys - set(config.keys()):
+        raise ValueError(f'Config keys missing: {config_keys - set(config.keys())}')
+    else:
+        return config
