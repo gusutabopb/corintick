@@ -4,6 +4,7 @@ Contains all the serialization/compression related functions
 import warnings
 import lz4
 import hashlib
+import logging
 from typing import Iterable, Sequence
 from io import BytesIO
 from collections import OrderedDict
@@ -12,9 +13,7 @@ from bson import Binary, SON
 import numpy as np
 import pandas as pd
 
-from .utils import make_logger
-
-logger = make_logger(__name__)
+logger = logging.getLogger('pytrthree')
 MAX_DF_SIZE = 32 * 1024.0 ** 2  # 32 MB
 
 def _serialize_array(arr: np.ndarray) -> bytes:

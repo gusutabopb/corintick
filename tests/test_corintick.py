@@ -5,9 +5,12 @@ from corintick import Corintick
 
 @pytest.fixture(scope="module")
 def api():
-    api = Corintick(config='~/plugaai/corintick/config.yml')
+    api = Corintick(config='unittest_config.yml')
     print(api.config)
-    return api
+    yield api
+    assert 'corintick_test' in api.client.database_names()
+    api.client.drop_database('corintick_test')
+    assert 'corintick_test' not in api.client.database_names()
 
 
 def test_simple_write(api):
@@ -23,6 +26,7 @@ def test_simple_write(api):
     r2 = api.write(uid2, df2, source='Quandl')
     assert r1.acknowledged
     assert r2.acknowledged
+    assert api.db.corintick.count() == 2
 
 
 def test_simple_read(api):

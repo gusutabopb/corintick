@@ -1,0 +1,12 @@
+---
+host:
+  host: localhost
+  port: 27017
+auth:
+  name: corintick
+  password: v3au7CZk
+log: '~/plugaai/_logs'
+database:
+  name: corintick_test
+buckets:
+  - corintick

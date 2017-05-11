@@ -12,15 +12,15 @@ from pymongo.results import InsertOneResult, BulkWriteResult
 from . import serialization
 from . import utils
 
-logger = utils.make_logger(__name__)
 opts = CodecOptions(document_class=SON)
 
 
 class Corintick:
     MAX_DOCS = 10
 
-    def __init__(self, config=None):
+    def __init__(self, config):
         self.config = utils.load_config(config)
+        self.logger = utils.make_logger('corintick', self.config)
         self.client = pymongo.MongoClient(**self.config['host'])
         if 'auth' in self.config:
             self.client.admin.authenticate(**self.config['auth'])
@@ -59,12 +59,12 @@ class Corintick:
         ndocs = exec_stats['executionStats']['nReturned']
 
         if not ndocs:
-            logger.warning('No documents retrieved!')
+            self.logger.warning('No documents retrieved!')
             df = None
         elif ndocs > self.MAX_DOCS:
-            logger.warning(f'More than {self.MAX_DOCS} found. Returning only the '
-                           f'first {self.MAX_DOCS} docs. Change `corintick.Reader.MAX_DOCS` property '
-                           f'or change query to retrieve remaining docs.')
+            self.logger.warning(f'More than {self.MAX_DOCS} found. Returning only the '
+                                f'first {self.MAX_DOCS} docs. Change `corintick.Reader.MAX_DOCS` property '
+                                f'or change query to retrieve remaining docs.')
             df = serialization.build_dataframe(cursor)
         else:
             df = serialization.build_dataframe(cursor)
@@ -72,7 +72,7 @@ class Corintick:
         if columns and ndocs:
             not_found = set(columns) - set(df.columns)
             if not_found:
-                logger.warning(f'The following requested columns were not found: {not_found}')
+                self.logger.warning(f'The following requested columns were not found: {not_found}')
 
         return df
 
