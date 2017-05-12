@@ -2,17 +2,16 @@
 Functions for retrieving data from Corintick
 """
 from typing import Iterable
+from collections import OrderedDict
 
 import pandas as pd
 import pymongo
-from bson import SON, CodecOptions
+from bson import SON, CodecOptions, InvalidBSON
 from pymongo import IndexModel
 from pymongo.results import InsertOneResult, BulkWriteResult
 
 from . import serialization
 from . import utils
-
-opts = CodecOptions(document_class=SON)
 
 
 class Corintick:
@@ -25,6 +24,7 @@ class Corintick:
         if 'auth' in self.config:
             self.client.admin.authenticate(**self.config['auth'])
         self.db = self.client.get_database(**self.config['database'])
+        opts = CodecOptions(document_class=OrderedDict)
         self.bucket = self.db.get_collection(self.buckets[0]).with_options(opts)
         self._make_indexes()
 
@@ -48,7 +48,7 @@ class Corintick:
         else:
             projection.update({'columns.{}'.format(col): 1 for col in columns})
 
-        print(query, projection)
+        self.logger.debug(query, projection)
         cursor = self.bucket.find(query, projection).limit(self.MAX_DOCS).sort('start')
 
         return cursor
@@ -100,7 +100,7 @@ class Corintick:
         ix2 = IndexModel([('uid', 1), ('end', -1), ('start', -1)], name='reverse')
         self.bucket.create_indexes([ix1, ix2])
 
-    def write(self, uid: str, df: pd.DataFrame, **metadata) -> InsertOneResult:
+    def write(self, uid: str, df: pd.DataFrame, **metadata):
         """
         Writes a single timeseries DataFrame to Corintick.
 
@@ -110,14 +110,13 @@ class Corintick:
                          the underlying streamers, such as streamers source, etc.
         :return: None
         """
-        doc = serialization.make_bson_doc(uid, df, **metadata)
-        result = self.bucket.insert_one(doc)
-        return result
+        # TODO: Check for duplicates -> DuplicateKeyError
+        return self.bulk_write([(uid, df, metadata)])
 
     def bulk_write(self, it: Iterable) -> BulkWriteResult:
         """
-        Takes an iterable which returns a (uid, df, metadata) tuple every iteration.
-        See `corintick.Writer.write` docstring for tuple object types.
+        Takes an iterable which returns a tuple containing the arguments to
+        `Corintick.write` tuple for every iteration.
         This function can be used with simple lists or more complex generator objects.
 
         :param it: Iterator containing streamers to be inserted
@@ -126,8 +125,8 @@ class Corintick:
         bulk = self.bucket.initialize_ordered_bulk_op()
         for data in it:
             uid, df, metadata = data
-            for sub_df in serialization.split_dataframes(df):
-                doc = serialization.make_bson_doc(uid, sub_df, **metadata)
+            docs = serialization.make_bson_docs(uid, df, metadata)
+            for doc in docs:
                 bulk.insert(doc)
         result = bulk.execute()
         return result
