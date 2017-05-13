@@ -4,6 +4,7 @@ Contains all the serialization/compression related functions
 import hashlib
 import io
 import logging
+import re
 from collections import OrderedDict
 from typing import Iterable, Sequence, Union
 
@@ -74,16 +75,20 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
     if not isinstance(df.index, pd.DatetimeIndex):
         raise ValueError('DataFrame index is not DatetimeIndex')
 
+    mem_usage = df.memory_usage().sum()
     df = df.sort_index(ascending=True)
+    # Remove invalid MongoDB field characters
+    # TODO: enforce timezone
+    df = df.rename(columns=lambda x: re.sub('\.', '', str(x)))
     index = _make_bson_column(df.index)
     columns = SON()
     for col in df.columns:
-        columns[str(col)] = _make_bson_column(df[col])
+        columns[col] = _make_bson_column(df[col])
 
     nrows = len(df)
-    binary_size = sum([columns[str(col)]['size'] for col in df.columns])
+    binary_size = sum([columns[col]['size'] for col in df.columns])
     binary_size += index['size']
-    compression_ratio = binary_size / df.memory_usage().sum()
+    compression_ratio = binary_size / mem_usage
     if binary_size > 0.95 * MAX_BSON_SIZE:
         msg = f'Binary data size is too large ({binary_size:,} / {compression_ratio:.1%})'
         logger.warning(msg)
