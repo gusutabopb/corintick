@@ -35,8 +35,8 @@ class BFSnapshotParser:
         row.name = pd.Timestamp(snap['timetoken'])
         return row
 
-class TRTHParser:
 
+class TRTHParser:
     def __init__(self):
         pass
 

@@ -4,6 +4,7 @@ import pytest
 
 from corintick import Corintick
 
+
 @pytest.fixture(scope="module")
 def api():
     api = Corintick(config='unittest_config.yml')

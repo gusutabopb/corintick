@@ -1,14 +1,14 @@
 """
 Functions for retrieving data from Corintick
 """
-from typing import Iterable
 from collections import OrderedDict
+from typing import Iterable
 
 import pandas as pd
 import pymongo
-from bson import SON, CodecOptions, InvalidBSON
+from bson import CodecOptions
 from pymongo import IndexModel
-from pymongo.results import InsertOneResult, BulkWriteResult
+from pymongo.results import BulkWriteResult
 
 from . import serialization
 from . import utils

@@ -6,8 +6,10 @@ from setuptools.command.install import install
 if sys.version_info.major != 3:
     sys.exit('Support Python 3 only')
 
+
 class Installer(install):
     pass
+
 
 with open('README.md', 'r') as f:
     long_description = f.read()
@@ -24,7 +26,7 @@ setup(name='corintick',
       license='GPL',
       install_requires=['lz4',
                         'pandas>=0.19',
-                        'pymongo'],
+                        'pymongo', 'numpy', 'quandl'],
       classifiers=[
           'Intended Audience :: Developers',
           'Intended Audience :: Science/Research',

@@ -93,6 +93,5 @@ _*/
 .log/
 .idea/
 *.zip
-*.log
 *.pkl
 .DS_Store
