@@ -6,57 +6,65 @@ import io
 import logging
 import re
 from collections import OrderedDict
-from typing import Iterable, Sequence, Union
+from typing import Iterable, Sequence, Union, Mapping
 
 import lz4
 import numpy as np
 import pandas as pd
+import msgpack
 from bson import Binary, SON, InvalidBSON
 
 logger = logging.getLogger('corintick')
 MAX_BSON_SIZE = 2 ** 24  # 16 MB
 
+
 def _serialize_array(arr: np.ndarray) -> bytes:
     """
     Serializes array using Numpy's native serialization functionality and
     compresses utilizing lz4's high compression algorithm.
-    Arrays are serialized to C format and should be relatively easily to reverse
-    engineer to other languages.
-    Reference: https://docs.scipy.org/doc/numpy/neps/npy-format.html
+    Numeric types are serialized to C format and should be relatively easily to reverse
+    engineer to other languages (https://docs.scipy.org/doc/numpy/neps/npy-format.html).
+    Non-numeric types are strigified and serialized to MessagePack (http://msgpack.org/index.html).
     :param arr: Numpy array
-    :return: Compressed bytes
+    :return: LZ4-compressed binary blob
     """
     if arr.dtype == np.dtype('O'):
-        logger.warning('Attemping to serialize a Python object')
-    with io.BytesIO() as f:
-        np.save(f, arr)
-        f.seek(0)
-        output = f.read()
-    return lz4.block.compress(output, mode='high_compression')
+        data = msgpack.dumps(list(map(str, arr)))
+    else:
+        with io.BytesIO() as f:
+            np.save(f, arr)
+            f.seek(0)
+            data = f.read()
+    blob = lz4.block.compress(data, mode='high_compression')
+    return blob
 
 
-def _deserialize_array(data: bytes) -> np.ndarray:
+def _deserialize_array(column: Mapping) -> np.ndarray:
     """
     Takes raw binary compressesed/serialized retrieved from MongoDB
     and decompresses/deserializes it, returning the original Numpy array
-    :param data: LZ4-compressed binary blob
+    :param column: Input column
     :return: Numpy array
     """
-    return np.load(io.BytesIO(lz4.block.decompress(data)))
+    data = lz4.block.decompress(column['blob'])
+    if column['dtype'] == 'object':
+        return np.array([i.decode('utf-8') for i in msgpack.loads(data)])
+    else:
+        return np.load(io.BytesIO(data))
 
 
-def _make_bson_column(col: Union[pd.Series, pd.DatetimeIndex]) -> dict:
+def _make_bson_column(col: Union[pd.Series, pd.DatetimeIndex]) -> Mapping:
     """
     Compresses dataframe's column/index and returns a dictionary
     with BSON blob column and some metadata.
-    :param arr: Input column/index
+    :param col: Input column/index
     :return: Column data dictionary
     """
-    data = Binary(_serialize_array(col.values))
-    sha1 = Binary(hashlib.sha1(data).digest())
+    blob = Binary(_serialize_array(col.values))
+    sha1 = Binary(hashlib.sha1(blob).digest())
     dtype = str(col.dtype)
-    size = len(data)
-    return {'data': data, 'dtype': dtype, 'sha1': sha1, 'size': size}
+    size = len(blob)
+    return SON(blob=blob, dtype=dtype, sha1=sha1, size=size)
 
 
 def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
@@ -108,7 +116,7 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
     return doc
 
 
-def make_bson_docs(uid, df, metadata, max_size=MAX_BSON_SIZE * 4):
+def make_bson_docs(uid, df, metadata, max_size=MAX_BSON_SIZE * 4) -> Sequence[SON]:
     """
     Wrapper around ``_make_bson_doc``.
     Since BSON documents can't be larger than 16 MB, this function makes sure
@@ -134,12 +142,11 @@ def make_bson_docs(uid, df, metadata, max_size=MAX_BSON_SIZE * 4):
             doc = _make_bson_doc(uid, sub_df, metadata)
             docs.append(doc)
         except InvalidBSON as e:
-            new_max_size = 0.95 *  MAX_BSON_SIZE / e.args[1]
+            new_max_size = 0.95 * MAX_BSON_SIZE / e.args[1]
             assert new_max_size > MAX_BSON_SIZE * 0.8
             logger.warning(f'Reducing max DataFrame split max_size to {new_max_size:,}')
             return make_bson_docs(uid, df, metadata, max_size=new_max_size)
     return docs
-
 
 
 def _build_dataframe(doc: SON) -> pd.DataFrame:
@@ -149,8 +156,8 @@ def _build_dataframe(doc: SON) -> pd.DataFrame:
     :param doc: BSON document
     :return: DataFrame
     """
-    index = pd.Index(_deserialize_array(doc['index']['data']))
-    columns = [_deserialize_array(col['data']) for col in doc['columns'].values()]
+    index = pd.Index(_deserialize_array(doc['index']))
+    columns = [_deserialize_array(col) for col in doc['columns'].values()]
     names = doc['columns'].keys()
     df = pd.DataFrame(index=index, data=OrderedDict(zip(names, columns)))
     return df
