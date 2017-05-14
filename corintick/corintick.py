@@ -54,6 +54,8 @@ class Corintick:
         return cursor
 
     def read(self, uid, start=pd.Timestamp.min, end=pd.Timestamp.max, columns=None, **metadata):
+        start = pd.Timestamp(start)
+        end = pd.Timestamp(end)
         cursor = self._query(uid, start, end, columns, **metadata)
         exec_stats = cursor.explain()
         ndocs = exec_stats['executionStats']['nReturned']
@@ -74,7 +76,7 @@ class Corintick:
             if not_found:
                 self.logger.warning(f'The following requested columns were not found: {not_found}')
 
-        return df
+        return df.ix[start:end]
 
     def list_uids(self):
         project = {'uid': 1, 'start': 1, 'end': 1, 'metadata': 1}

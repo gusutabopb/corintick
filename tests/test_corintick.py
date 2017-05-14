@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 import numpy as np
 import pytest
@@ -36,6 +38,15 @@ def test_simple_read(api):
         assert isinstance(df, pd.DataFrame)
         print(df.head(), df.shape)
         assert len(df) > 100
+
+
+def test_date_parsing(api):
+    df = api.read('7203', start='2015', end='2016')
+    start = df.index[0].date()
+    end = df.index[-1].date()
+    assert start == datetime.date(2015, 1, 5)
+    assert end == datetime.date(2015, 12, 30)
+    assert len(df) == 244
 
 
 def test_write_low_compression_data(api):
