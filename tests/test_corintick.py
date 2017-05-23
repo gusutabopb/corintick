@@ -48,6 +48,11 @@ def test_date_parsing(api):
     assert end == datetime.date(2015, 12, 30)
     assert len(df) == 244
 
+def test_date_validation(api):
+    df = api.read('7203', start='2015', end='2016')
+    with pytest.raises(ValueError):
+        api.write('7203', df)
+
 
 def test_write_low_compression_data(api):
     ix = pd.date_range('2007-01-01', '2017-01-01').to_series()
