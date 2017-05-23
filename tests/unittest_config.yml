@@ -8,5 +8,5 @@ auth:
 log: '~/plugaai/_logs'
 database:
   name: corintick_test
-buckets:
+collections:
   - corintick

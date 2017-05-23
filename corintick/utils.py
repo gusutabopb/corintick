@@ -31,9 +31,9 @@ def load_config(config_path):
     if config_path is None:
         return {'host': {},
                 'database': {'name': 'corintick'},
-                'buckets': ['corintick']}
+                'collections': ['corintick']}
     config = yaml.load(open(os.path.expanduser(config_path)))
-    config_keys = {'host', 'database', 'buckets'}
+    config_keys = {'host', 'database', 'collections'}
     if config_keys - set(config.keys()):
         raise ValueError(f'Config keys missing: {config_keys - set(config.keys())}')
     else:

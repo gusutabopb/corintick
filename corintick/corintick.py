@@ -2,7 +2,7 @@
 Functions for retrieving data from Corintick
 """
 from collections import OrderedDict
-from typing import Iterable
+from typing import Iterable, Optional
 
 import pandas as pd
 import pymongo
@@ -24,15 +24,24 @@ class Corintick:
         if 'auth' in self.config:
             self.client.admin.authenticate(**self.config['auth'])
         self.db = self.client.get_database(**self.config['database'])
-        opts = CodecOptions(document_class=OrderedDict)
-        self.bucket = self.db.get_collection(self.buckets[0]).with_options(opts)
-        self._make_indexes()
+        self.opts = CodecOptions(document_class=OrderedDict)
+        self.default_collection = self.db.get_collection(self.collections[0]).with_options(self.opts)
+        for collection in self.collections:
+            self._make_indexes(collection)
 
     @property
-    def buckets(self):
-        return self.config['buckets']
+    def collections(self):
+        return self.config['collections']
 
-    def _query(self, uid, start, end, columns, **metadata):
+    def get_collection(self, collection):
+        if collection is None:
+            return self.default_collection
+        elif collection in self.collections:
+            return self.db.get_collection(collection).with_options(self.opts)
+        else:
+            raise ValueError("Collection doesn't exist. Please add it to the config file.")
+
+    def _query(self, uid, start, end, columns, collection, **metadata):
         # The following represent docs 1) containing query start,
         # OR 2) between query start and query end, OR 3) containing query end
         query = {'uid': uid}
@@ -49,14 +58,15 @@ class Corintick:
             projection.update({'columns.{}'.format(col): 1 for col in columns})
 
         self.logger.debug(query, projection)
-        cursor = self.bucket.find(query, projection).limit(self.MAX_DOCS).sort('start')
-
+        col = self.get_collection(collection)
+        cursor = col.find(query, projection).limit(self.MAX_DOCS).sort('start')
         return cursor
 
-    def read(self, uid, start=pd.Timestamp.min, end=pd.Timestamp.max, columns=None, **metadata):
+    def read(self, uid, start=pd.Timestamp.min, end=pd.Timestamp.max,
+             columns=None, collection=None, **metadata) -> Optional[pd.DataFrame]:
         start = pd.Timestamp(start)
         end = pd.Timestamp(end)
-        cursor = self._query(uid, start, end, columns, **metadata)
+        cursor = self._query(uid, start, end, columns, collection, **metadata)
         exec_stats = cursor.explain()
         ndocs = exec_stats['executionStats']['nReturned']
 
@@ -78,7 +88,7 @@ class Corintick:
 
         return df.ix[start:end]
 
-    def list_uids(self):
+    def list_uids(self, collection=None):
         project = {'uid': 1, 'start': 1, 'end': 1, 'metadata': 1}
         group = {'_id': '$uid',
                  'doc_count': {'$sum': 1},
@@ -86,13 +96,14 @@ class Corintick:
                  'end': {'$max': '$end'},
                  'total_rows': {'$sum': '$metadata.nrows'}}
 
-        agg = self.bucket.aggregate([{"$project": project}, {"$group": group}])
-        return list(agg)
+        col = self.get_collection(collection)
+        result = col.aggregate([{"$project": project}, {"$group": group}])
+        return list(result)
 
     def list_metadata(self):
         pass
 
-    def _make_indexes(self):
+    def _make_indexes(self, collection):
         """
         Makes indexes used by Corintick.
         Metadata is not used for querying and therefore not indexed.
@@ -100,7 +111,8 @@ class Corintick:
         """
         ix1 = IndexModel([('uid', 1), ('start', -1), ('end', -1)], unique=True, name='default')
         ix2 = IndexModel([('uid', 1), ('end', -1), ('start', -1)], name='reverse')
-        self.bucket.create_indexes([ix1, ix2])
+        col = self.get_collection(collection)
+        col.create_indexes([ix1, ix2])
 
     def _validate_dates(self, uid, df, collection):
         """Checks whether new DataFrame has date conflicts with existing documents"""

@@ -19,7 +19,7 @@ host:
 log: '~/corintick_logs'
 database:
   name: corintick
-buckets:
+collections:
   - corintick
 ```
 
@@ -67,7 +67,7 @@ corintick.write('7203.T', df1, source='Quandl', country='Japan')
 ```
 
 The first argument passed to `corintick.write` is an UID (universal identifier)
- and must be unique for each timeseries inserted in a given bucket.
+ and must be unique for each timeseries inserted in a given collection.
 The
 
 
@@ -118,7 +118,7 @@ df2 = corintick.read('7203.T', columns=['Close', 'Volume'])
 ```
 
 
-## Buckets
+## Collections
 
 **TODO**
 
