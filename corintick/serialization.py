@@ -142,7 +142,7 @@ def make_bson_docs(uid, df, metadata, max_size=MAX_BSON_SIZE * 4) -> Sequence[SO
             doc = _make_bson_doc(uid, sub_df, metadata)
             docs.append(doc)
         except InvalidBSON as e:
-            new_max_size = 0.95 * MAX_BSON_SIZE / e.args[1]
+            new_max_size = np.floor(0.95 * MAX_BSON_SIZE / e.args[1])
             assert new_max_size > MAX_BSON_SIZE * 0.8
             logger.warning(f'Reducing max DataFrame split max_size to {new_max_size:,}')
             return make_bson_docs(uid, df, metadata, max_size=new_max_size)

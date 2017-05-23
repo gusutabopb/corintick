@@ -25,7 +25,7 @@ class Corintick:
             self.client.admin.authenticate(**self.config['auth'])
         self.db = self.client.get_database(**self.config['database'])
         self.opts = CodecOptions(document_class=OrderedDict)
-        self.default_collection = self.db.get_collection(self.collections[0]).with_options(self.opts)
+        self.current_collection = self.db.get_collection(self.collections[0]).with_options(self.opts)
         for collection in self.collections:
             self._make_indexes(collection)
 
@@ -33,13 +33,21 @@ class Corintick:
     def collections(self):
         return self.config['collections']
 
+    @property
+    def collection(self):
+        return self.current_collection
+
+    @collection.setter
+    def collection(self, value):
+        self.current_collection = self.get_collection(value)
+
     def get_collection(self, collection):
         if collection is None:
-            return self.default_collection
+            return self.current_collection
         elif collection in self.collections:
             return self.db.get_collection(collection).with_options(self.opts)
         else:
-            raise ValueError("Collection doesn't exist. Please add it to the config file.")
+            raise CorintickValidationError("Collection doesn't exist. Please add it to the config file.")
 
     def _query(self, uid, start, end, columns, collection, **metadata):
         # The following represent docs 1) containing query start,
@@ -82,14 +90,12 @@ class Corintick:
 
         if not ndocs:
             self.logger.warning('No documents retrieved!')
-            df = None
+            return
         elif ndocs > self.MAX_DOCS:
             self.logger.warning(f'More than {self.MAX_DOCS} found. Returning only the '
                                 f'first {self.MAX_DOCS} docs. Change `corintick.Reader.MAX_DOCS` property '
                                 f'or change query to retrieve remaining docs.')
-            df = serialization.build_dataframe(cursor)
-        else:
-            df = serialization.build_dataframe(cursor)
+        df = serialization.build_dataframe(cursor)
 
         if columns and ndocs:
             not_found = set(columns) - set(df.columns)
@@ -105,7 +111,8 @@ class Corintick:
                  'doc_count': {'$sum': 1},
                  'start': {'$min': '$start'},
                  'end': {'$max': '$end'},
-                 'total_rows': {'$sum': '$metadata.nrows'}}
+                 'total_rows': {'$sum': '$metadata.nrows'},
+                 'total_size': {'$sum': '$metadata.binary_size'}}
 
         col = self.get_collection(collection)
         result = col.aggregate([{"$project": project}, {"$group": group}])
@@ -161,7 +168,7 @@ class Corintick:
 
         :param it: Iterator containing streamers to be inserted
         """
-        bulk = self.default_collection.initialize_ordered_bulk_op()
+        bulk = self.current_collection.initialize_ordered_bulk_op()
         for data in it:
             uid, df, metadata = data
             self._validate_dates(uid, df, collection)
