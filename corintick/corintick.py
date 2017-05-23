@@ -102,33 +102,51 @@ class Corintick:
         ix2 = IndexModel([('uid', 1), ('end', -1), ('start', -1)], name='reverse')
         self.bucket.create_indexes([ix1, ix2])
 
-    def write(self, uid: str, df: pd.DataFrame, **metadata):
+    def _validate_dates(self, uid, df, collection):
+        """Checks whether new DataFrame has date conflicts with existing documents"""
+        col = self.get_collection(collection)
+        docs = col.find({'uid': uid}, {'start': 1, 'end': 1})
+        df = df.sort_index()
+        start = df.index[0]
+        end = df.index[-1]
+        for doc in sorted(docs, key=lambda x: x['start']):
+            if end < doc['start'] or start > doc['end']:
+                continue
+            else:
+                raise CorintickValidationError('Invalid dates. Conflicts with {}'.format(doc['_id']))
+
+    def write(self, uid: str, df: pd.DataFrame, collection: Optional[str]=None, **metadata):
         """
         Writes a single timeseries DataFrame to Corintick.
 
         :param uid: String-like unique identifier for the timeseries
         :param df: DataFrame representing a timeseries segment
+        :param collection: Collection to be used (optional)
         :param metadata: Dictionary-like object containing metadata about
                          the underlying streamers, such as streamers source, etc.
         :return: None
         """
-        # TODO: Check for duplicates -> DuplicateKeyError
+        self._validate_dates(uid, df, collection)
         return self.bulk_write([(uid, df, metadata)])
 
-    def bulk_write(self, it: Iterable) -> BulkWriteResult:
+    def bulk_write(self, it: Iterable, collection: Optional[str]=None) -> BulkWriteResult:
         """
         Takes an iterable which returns a tuple containing the arguments to
         `Corintick.write` tuple for every iteration.
         This function can be used with simple lists or more complex generator objects.
 
         :param it: Iterator containing streamers to be inserted
-        :return: None
         """
-        bulk = self.bucket.initialize_ordered_bulk_op()
+        bulk = self.default_collection.initialize_ordered_bulk_op()
         for data in it:
             uid, df, metadata = data
+            self._validate_dates(uid, df, collection)
             docs = serialization.make_bson_docs(uid, df, metadata)
             for doc in docs:
                 bulk.insert(doc)
         result = bulk.execute()
         return result
+
+
+class CorintickValidationError(ValueError):
+    pass
