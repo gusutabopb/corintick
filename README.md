@@ -5,10 +5,19 @@ Corintick is designed mainly to store [pandas](http://pandas.pydata.org/) DataFr
  
 ## Quickstart
 
+### Instalation:
 
-### Prepartaion
+In order to use Corintick you need MongoDB. 
+See installation instructions [here](https://docs.mongodb.com/manual/installation/).
 
-In order to use Corintick you need MongoDB. See installation instructions [here](https://docs.mongodb.com/manual/installation/).
+Corintick itself can be installed with `pip`:
+
+```bash
+$ pip install git+https://github.com/plugaai/pytrthree
+```
+
+
+### Preparation
 
 Once MongoDB is up and running, we need a simple configuration file:
 
@@ -35,7 +44,7 @@ Initialize Corintick with your configuration file:
  
 ```python
 from corintick import Corintick
-corintick = Corintick(config='config.yml')
+corin = Corintick(config='config.yml')
 ```
 
 Now we need a DataFrame to insert into Corintick. For demonstration purposes, we will get data from [Quandl](https://www.quandl.com/):  
@@ -60,29 +69,33 @@ Date
 ...
 ```
 
+### Writing
+
 Inserting `df1` into Corintick is simple:
 
 ```python
-corintick.write('7203.T', df1, source='Quandl', country='Japan')
+corin.write('7203.T', df1, source='Quandl', country='Japan')
 ```
 
 The first argument passed to `corintick.write` is an UID (universal identifier)
- and must be unique for each timeseries inserted in a given collection.
-The
+ and must be unique for each timeseries inserted in a given collection. 
+The second argument is the dataframe to be inserted. 
+The remaining keyword arguments optional metadata tags that can be attached to the 
+dataframe/document for querying.
 
 
-# Reading
+### Reading
 
-Reading from Corintick is also straight-forward:
+Reading from Corintick is also straightforward:
 
 ```python
-df2 = corintick.read('7203.T')
+df2 = corin.read('7203.T')
 ```
 
-You can also specify `start` and `end` as ISO-8601 datatime string:
+You can also specify `start` and `end` as ISO-8601 datetime string...
 
 ```python
-df2 = corintick.read('7203.T', start='2014-01-01', end='2014-12-31')
+df2 = corin.read('7203.T', start='2014-01-01', end='2014-12-31')
 ```
 
 ```
@@ -101,10 +114,10 @@ df2 = corintick.read('7203.T', start='2014-01-01', end='2014-12-31')
 ```
 
 
-And/or which columns you want retrived:
+... and which columns you want retrived:
 
 ```python
-df2 = corintick.read('7203.T', columns=['Close', 'Volume'])
+df2 = corin.read('7203.T', columns=['Close', 'Volume'], start='2017-05-10')
 ```
 
 ```text
@@ -120,7 +133,37 @@ df2 = corintick.read('7203.T', columns=['Close', 'Volume'])
 
 ## Collections
 
-**TODO**
+Corintick can use multiple collections to better organize data. 
+A Corintick collection is implemented as a MongoDB collection.
+In each collection, only a single dataframe/document can exist for a given UID 
+for a given time period.  
+
+In case you need to store two different types of data for a same UID over an overlapping 
+time frame (i.e. trade data and order book data for a given stock), you should separate 
+the two different types of data into different collections.
+
+The current collection can be checked by the `Corintick.collection` property:
+
+```python
+>>> corin.collection
+Collection(Database(MongoClient(host=['localhost:27017'], document_class=dict, tz_aware=False, connect=True), 'corintick'), 'corintick')
+```
+
+The current collection can be changed by assigning a string to `Corintick.collection`. 
+However, such collection must be previously defined in the Corintick configuration file:
+
+```python
+>>> corin.collection = 'another_collection'
+CorintickValidationError: Collection doesn't exist. Please add it to the config file.
+```
+
+Collections can also be changed on a method call basis, without changing 
+the `collection` property:
+
+```python
+df = corin.read('7203.T', collection='orderbook')
+```
+
 
 ## Corintick mechanics
 
@@ -138,27 +181,36 @@ During reading, the opposite takes places:
 ## Background
 
 Corintick was inspired and by and aims to be a simplified
- version of Man AHL's [Arcitc](https://github.com/manahl/arctic).
+ version of Man AHL's [Arctic](https://github.com/manahl/arctic).
 
-### Differences from Arctic
+#### Differences from Arctic
 Corintick has a single storage engine, which is column-based and not 
 versioned, similar to Arctic's TickStore. However, differently from 
 TickStore, it does support non-numerical `object` dtype columns by parsing 
 them into MessagePack string objects
 
-## Benchmarks
+#### Naming
+Corintick aimed from the beggining to be a column-based data storage.
+"Corintick" is a blend of "Corinthan" (style of Roman columns) and "tick". 
 
+## Benchmarks
+**TODO**
 - **vs InfluxDB**
 - **vs vanila MongoDB**
 - **vs MySQL**
 - **vs KDB+ (32-bit)**
 
+## Contributing
 
-## Extending Corintick
+To contribute, fork the repository on GitHub, make your changes and 
+submit a pull request :)
+Pytrthree is not a mature project yet, so just simply raising issues is 
+also greatly appreciated :)
+
+### Extending Corintick
 
 **TODO**
 
-## Future goals
+### Future goals
  - Implement a Python agnostic HTTP API so that clients don't need 
    the Python/Corintick installed locally
- -

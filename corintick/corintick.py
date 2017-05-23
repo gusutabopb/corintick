@@ -44,6 +44,7 @@ class Corintick:
     def _query(self, uid, start, end, columns, collection, **metadata):
         # The following represent docs 1) containing query start,
         # OR 2) between query start and query end, OR 3) containing query end
+        # TODO: Query multiple IDs by regex and/or metadata
         query = {'uid': uid}
         query['$or'] = [{'start': {'$lte': start}, 'end': {'$gte': start}},
                         {'start': {'$gte': start}, 'end': {'$lte': end}},
@@ -64,6 +65,15 @@ class Corintick:
 
     def read(self, uid, start=pd.Timestamp.min, end=pd.Timestamp.max,
              columns=None, collection=None, **metadata) -> Optional[pd.DataFrame]:
+        """
+        Fetches data from Corintick's default collection.
+        :param uid: Unique identifier of the timeseries
+        :param start: ISO-8601 string or datetime-like object
+        :param end: ISO-8601 string or datetime-like object
+        :param columns: Columns to retrieve
+        :param collection: Collection to be used (optional)
+        :param metadata: MongoDB query dictionary
+        """
         start = pd.Timestamp(start)
         end = pd.Timestamp(end)
         cursor = self._query(uid, start, end, columns, collection, **metadata)
@@ -89,6 +99,7 @@ class Corintick:
         return df.ix[start:end]
 
     def list_uids(self, collection=None):
+        """Returns list of UIDs contained in collection"""
         project = {'uid': 1, 'start': 1, 'end': 1, 'metadata': 1}
         group = {'_id': '$uid',
                  'doc_count': {'$sum': 1},
@@ -101,6 +112,7 @@ class Corintick:
         return list(result)
 
     def list_metadata(self):
+        """Returns document statistics grouped by metadata parameters"""
         pass
 
     def _make_indexes(self, collection):
