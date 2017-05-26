@@ -24,7 +24,7 @@ setup(name='corintick',
       packages=['corintick'],
       # cmdclass={'install': Installer},
       license='GPL',
-      install_requires=['lz4',
+      install_requires=['lz4>=0.9.4',
                         'pandas>=0.19',
                         'pymongo', 'numpy', 'quandl', 'msgpack-python'],
       classifiers=[
