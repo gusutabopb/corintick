@@ -6,11 +6,14 @@ import yaml
 logger = logging.getLogger('pytrthree')
 
 
-def make_logger(name, config) -> logging.Logger:
-    if not os.path.exists(config['log']):
-        os.makedirs(config['log'])
-    fname = os.path.join(config['log'], f'{name}.log')
+def make_logger(name, config=None) -> logging.Logger:
+    log_path = os.path.expanduser(config['log']) if config else os.getcwd()
+    if not os.path.exists(log_path):
+        os.makedirs(log_path)
+    fname = os.path.join(log_path, f'{name}.log')
     logger = logging.getLogger(name)
+    if logger.handlers:
+        return logger
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s')
 
