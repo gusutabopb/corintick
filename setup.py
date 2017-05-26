@@ -26,7 +26,7 @@ setup(name='corintick',
       license='GPL',
       install_requires=['lz4',
                         'pandas>=0.19',
-                        'pymongo', 'numpy', 'quandl'],
+                        'pymongo', 'numpy', 'quandl', 'msgpack-python'],
       classifiers=[
           'Intended Audience :: Developers',
           'Intended Audience :: Science/Research',
