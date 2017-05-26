@@ -146,7 +146,9 @@ class Corintick:
             if end < doc['start'] or start > doc['end']:
                 continue
             else:
-                raise CorintickValidationError('Invalid dates. Conflicts with {}'.format(doc['_id']))
+                msg = 'Invalid dates. Conflicts with {} | {} vs {} | {} vs {}'
+                msg = msg.format(doc['_id'], end, doc['start'], start, doc['end'])
+                raise CorintickValidationError(msg)
 
     def write(self, uid: str, df: pd.DataFrame, collection: Optional[str]=None, **metadata):
         """
