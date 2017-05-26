@@ -24,7 +24,7 @@ class Corintick:
         if 'auth' in self.config:
             self.client.admin.authenticate(**self.config['auth'])
         self.db = self.client.get_database(**self.config['database'])
-        self.opts = CodecOptions(document_class=OrderedDict)
+        self.opts = CodecOptions(document_class=OrderedDict, tz_aware=True)
         self.current_collection = self.db.get_collection(self.collections[0]).with_options(self.opts)
         for collection in self.collections:
             self._make_indexes(collection)
@@ -135,6 +135,8 @@ class Corintick:
 
     def _validate_dates(self, uid, df, collection):
         """Checks whether new DataFrame has date conflicts with existing documents"""
+        if not df.index.tzinfo:
+            raise ValueError('DatetimeIndex must be timezone-aware')
         col = self.get_collection(collection)
         docs = col.find({'uid': uid}, {'start': 1, 'end': 1})
         df = df.sort_index()
