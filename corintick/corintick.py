@@ -24,32 +24,28 @@ class Corintick:
         if 'auth' in self.config:
             self.client.admin.authenticate(**self.config['auth'])
         self.db = self.client.get_database(**self.config['database'])
-        self.opts = CodecOptions(document_class=OrderedDict, tz_aware=True)
-        self.current_collection = self.db.get_collection(self.collections[0])
-        for collection in self.collections:
+        self.default_collection = self.config['collections'][0]
+        self.default_codec_opts = dict(document_class=OrderedDict, tz_aware=True)
+        for collection in self.config['collections']:
             self._make_indexes(collection)
 
     @property
     def collections(self):
-        return self.config['collections']
-
-    @property
-    def collection(self):
-        return self.current_collection
-
-    @collection.setter
-    def collection(self, value):
-        self.current_collection = self.get_collection(value)
+        return self.db.collection_names()
 
     def get_collection(self, collection=None, **options):
-        """Gets current"""
-        opts = CodecOptions(**{**self.opts._asdict(), **options})
+        """Parse codec options and returns collection"""
+        opts = {**self.default_codec_opts, **options}
+        if 'tzinfo' in opts and not opts['tz_aware']:
+            _ = opts.pop('tzinfo')
+        opts = CodecOptions(**opts)
+
         if collection is None:
-            return self.current_collection.with_options(opts)
-        elif collection in self.collections:
-            return self.db.get_collection(collection).with_options(opts)
-        else:
-            raise ValidationError("Collection doesn't exist. Please add it to the config file.")
+            collection = self.default_collection
+        elif collection not in self.config['collections']:
+            self._make_indexes(collection)
+            self.logger.info(f'Making new collection: {collection}')
+        return self.db.get_collection(collection).with_options(opts)
 
     def _query(self, uid, start, end, columns, collection, **metadata):
         # The following represent docs 1) containing query start,
@@ -165,7 +161,7 @@ class Corintick:
         :return: None
         """
         self._validate_dates(uid, df, collection)
-        return self.bulk_write([(uid, df, metadata)])
+        return self.bulk_write([(uid, df, metadata)], collection)
 
     def bulk_write(self, it: Iterable, collection: Optional[str]=None) -> BulkWriteResult:
         """
@@ -175,7 +171,7 @@ class Corintick:
 
         :param it: Iterator containing streamers to be inserted
         """
-        bulk = self.current_collection.initialize_ordered_bulk_op()
+        bulk = self.get_collection(collection).initialize_ordered_bulk_op()
         for data in it:
             uid, df, metadata = data
             self._validate_dates(uid, df, collection)
