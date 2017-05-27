@@ -25,7 +25,7 @@ class Corintick:
             self.client.admin.authenticate(**self.config['auth'])
         self.db = self.client.get_database(**self.config['database'])
         self.opts = CodecOptions(document_class=OrderedDict, tz_aware=True)
-        self.current_collection = self.db.get_collection(self.collections[0]).with_options(self.opts)
+        self.current_collection = self.db.get_collection(self.collections[0])
         for collection in self.collections:
             self._make_indexes(collection)
 
@@ -41,11 +41,13 @@ class Corintick:
     def collection(self, value):
         self.current_collection = self.get_collection(value)
 
-    def get_collection(self, collection):
+    def get_collection(self, collection=None, **options):
+        """Gets current"""
+        opts = CodecOptions(**{**self.opts._asdict(), **options})
         if collection is None:
-            return self.current_collection
+            return self.current_collection.with_options(opts)
         elif collection in self.collections:
-            return self.db.get_collection(collection).with_options(self.opts)
+            return self.db.get_collection(collection).with_options(opts)
         else:
             raise ValidationError("Collection doesn't exist. Please add it to the config file.")
 
@@ -135,9 +137,10 @@ class Corintick:
 
     def _validate_dates(self, uid, df, collection):
         """Checks whether new DataFrame has date conflicts with existing documents"""
-        if not df.index.tzinfo:
-            raise ValueError('DatetimeIndex must be timezone-aware')
-        col = self.get_collection(collection)
+        tz_aware = True if df.index.tzinfo else False
+        if not tz_aware:
+            self.logger.warning('DatetimeIndex is timezone-naive.')
+        col = self.get_collection(collection, tz_aware=tz_aware)
         docs = col.find({'uid': uid}, {'uid': 1, 'start': 1, 'end': 1})
         df = df.sort_index()
         start = df.index[0]
