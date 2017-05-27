@@ -47,7 +47,7 @@ class Corintick:
         elif collection in self.collections:
             return self.db.get_collection(collection).with_options(self.opts)
         else:
-            raise CorintickValidationError("Collection doesn't exist. Please add it to the config file.")
+            raise ValidationError("Collection doesn't exist. Please add it to the config file.")
 
     def _query(self, uid, start, end, columns, collection, **metadata):
         # The following represent docs 1) containing query start,
@@ -183,5 +183,5 @@ class Corintick:
         return result
 
 
-class CorintickValidationError(ValueError):
+class ValidationError(ValueError):
     pass
