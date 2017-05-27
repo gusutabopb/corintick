@@ -1,4 +1,5 @@
 import logging
+import io
 import os
 
 import yaml
@@ -31,11 +32,16 @@ def make_logger(name, config=None) -> logging.Logger:
 
 
 def load_config(config_path):
-    if config_path is None:
+
+    if isinstance(config_path, io.IOBase):
+        file = config_path
+    elif config_path is None:
         return {'host': {},
                 'database': {'name': 'corintick'},
                 'collections': ['corintick']}
-    config = yaml.load(open(os.path.expanduser(config_path)))
+    else:
+        file = open(os.path.expanduser(config_path))
+    config = yaml.load(file)
     config_keys = {'host', 'database', 'collections'}
     if config_keys - set(config.keys()):
         raise ValueError(f'Config keys missing: {config_keys - set(config.keys())}')
