@@ -25,7 +25,7 @@ setup(name='corintick',
       # cmdclass={'install': Installer},
       license='GPL',
       install_requires=['lz4>=0.9.4',
-                        'pandas>=0.19',
+                        'pandas>=0.19', 'pandas-datareader'
                         'pymongo', 'numpy', 'quandl', 'msgpack-python'],
       classifiers=[
           'Intended Audience :: Developers',
