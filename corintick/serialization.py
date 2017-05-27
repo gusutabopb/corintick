@@ -106,7 +106,7 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
         msg = f'Binary data size is too large ({binary_size:,} / {compression_ratio:.1%})'
         logger.warning(msg)
         raise InvalidBSON(msg, compression_ratio)
-    logger.info(f'{uid} document: {binary_size:,} bytes ({compression_ratio:.1%}), {nrows} rows')
+    logger.debug(f'{uid} document: {binary_size:,} bytes ({compression_ratio:.1%}), {nrows} rows')
     add_meta = {'nrows': nrows, 'binary_size': binary_size, 'utc_offset': offset}
     metadata = {**metadata, **add_meta}
 

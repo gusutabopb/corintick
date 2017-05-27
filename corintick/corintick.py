@@ -91,10 +91,7 @@ class Corintick:
         if not ndocs:
             self.logger.warning('No documents retrieved!')
             return
-        elif ndocs > self.MAX_DOCS:
-            self.logger.warning(f'More than {self.MAX_DOCS} found. Returning only the '
-                                f'first {self.MAX_DOCS} docs. Change `corintick.Reader.MAX_DOCS` property '
-                                f'or change query to retrieve remaining docs.')
+
         df = serialization.build_dataframe(cursor)
 
         if columns and ndocs:
