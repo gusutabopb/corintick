@@ -138,7 +138,7 @@ class Corintick:
         if not df.index.tzinfo:
             raise ValueError('DatetimeIndex must be timezone-aware')
         col = self.get_collection(collection)
-        docs = col.find({'uid': uid}, {'start': 1, 'end': 1})
+        docs = col.find({'uid': uid}, {'uid': 1, 'start': 1, 'end': 1})
         df = df.sort_index()
         start = df.index[0]
         end = df.index[-1]
@@ -146,9 +146,9 @@ class Corintick:
             if end < doc['start'] or start > doc['end']:
                 continue
             else:
-                msg = 'Invalid dates. Conflicts with {} | {} vs {} | {} vs {}'
-                msg = msg.format(doc['_id'], end, doc['start'], start, doc['end'])
-                raise CorintickValidationError(msg)
+                msg = 'Invalid dates. Conflicts with {} ({}: {}~{}) | Dataframe {}~{}'
+                msg = msg.format(doc['_id'], doc['uid'], doc['start'], doc['end'], start, end)
+                raise ValidationError(msg)
 
     def write(self, uid: str, df: pd.DataFrame, collection: Optional[str]=None, **metadata):
         """
