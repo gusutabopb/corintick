@@ -85,8 +85,13 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
 
     mem_usage = df.memory_usage().sum()
     df = df.sort_index(ascending=True)
+    if df.index.tzinfo is None:
+        logger.warning('Inserting timezone-naive DatetimeIndex')
+        offset = None
+    else:
+        offset = df.index.tzinfo._offset.seconds / 3600
+
     # Remove invalid MongoDB field characters
-    # TODO: enforce timezone
     df = df.rename(columns=lambda x: re.sub('\.', '', str(x)))
     index = _make_bson_column(df.index)
     columns = SON()
@@ -102,7 +107,7 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
         logger.warning(msg)
         raise InvalidBSON(msg, compression_ratio)
     logger.info(f'{uid} document: {binary_size:,} bytes ({compression_ratio:.1%}), {nrows} rows')
-    add_meta = {'nrows': nrows, 'binary_size': binary_size}
+    add_meta = {'nrows': nrows, 'binary_size': binary_size, 'utc_offset': offset}
     metadata = {**metadata, **add_meta}
 
     doc = SON([
@@ -157,6 +162,9 @@ def _build_dataframe(doc: SON) -> pd.DataFrame:
     :return: DataFrame
     """
     index = pd.Index(_deserialize_array(doc['index']))
+    if doc['metadata']['utc_offset']:
+        offset = int(doc['metadata']['utc_offset'] * 3600)
+        index = index.tz_localize(offset) + pd.Timedelta(seconds=offset)
     columns = [_deserialize_array(col) for col in doc['columns'].values()]
     names = doc['columns'].keys()
     df = pd.DataFrame(index=index, data=OrderedDict(zip(names, columns)))

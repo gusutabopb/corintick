@@ -13,6 +13,8 @@ from pymongo.results import BulkWriteResult
 from . import serialization
 from . import utils
 
+MIN_TIME = pd.Timestamp.min + pd.Timedelta(hours=48)
+MAX_TIME = pd.Timestamp.max - pd.Timedelta(hours=48)
 
 class Corintick:
     MAX_DOCS = 10
@@ -69,7 +71,7 @@ class Corintick:
         cursor = col.find(query, projection).limit(self.MAX_DOCS).sort('start')
         return cursor
 
-    def read(self, uid, start=pd.Timestamp.min, end=pd.Timestamp.max,
+    def read(self, uid, start=MIN_TIME, end=MAX_TIME,
              columns=None, collection=None, **metadata) -> Optional[pd.DataFrame]:
         """
         Fetches data from Corintick's default collection.
