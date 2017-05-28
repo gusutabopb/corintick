@@ -92,7 +92,11 @@ class Corintick:
         return result
 
     def list_uids(self, uid: Optional[str] = None, collection: Optional[str] = None) -> Sequence[Mapping]:
-        """Returns list of UIDs contained in collection"""
+        """
+        Returns list of UIDs contained in collection
+        :param uid: String-like unique identifier for the timeseries
+        :param collection: Collection to be used (optional)
+        """
         project = {'uid': 1, 'start': 1, 'end': 1, 'metadata': 1}
         group = {'_id': '$uid',
                  'doc_count': {'$sum': 1},
