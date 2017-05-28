@@ -1,7 +1,7 @@
 general:
   branches:
     only:
-     - circleci
+     - master
 machine:
   python:
     version: 3.6.1
