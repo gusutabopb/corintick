@@ -70,7 +70,7 @@ class Corintick:
             if not_found:
                 self.logger.warning(f'The following requested columns were not found: {not_found}')
 
-        return df.ix[start:end]
+        return df.loc[start:end]
 
     def write(self, uid: str, df: pd.DataFrame, collection: Optional[str] = None, **metadata) -> InsertManyResult:
         """
