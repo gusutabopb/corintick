@@ -101,7 +101,7 @@ class Corintick:
 
         return df.ix[start:end]
 
-    def list_uids(self, collection=None):
+    def list_uids(self, uid=None, collection=None):
         """Returns list of UIDs contained in collection"""
         project = {'uid': 1, 'start': 1, 'end': 1, 'metadata': 1}
         group = {'_id': '$uid',
@@ -112,8 +112,11 @@ class Corintick:
                  'total_size': {'$sum': '$metadata.binary_size'}}
 
         col = self.get_collection(collection)
-        result = col.aggregate([{"$project": project}, {"$group": group}])
-        return list(result)
+        pipeline = [{"$project": project}, {"$group": group}]
+        if uid:
+            pipeline = [{'$match': {'uid': uid}}] + pipeline
+        result = list(col.aggregate(pipeline))
+        return result
 
     def list_metadata(self):
         """Returns document statistics grouped by metadata parameters"""
