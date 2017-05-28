@@ -17,7 +17,6 @@ MIN_TIME = pd.Timestamp.min + pd.Timedelta(hours=48)
 MAX_TIME = pd.Timestamp.max - pd.Timedelta(hours=48)
 
 class Corintick:
-    MAX_DOCS = 10
 
     def __init__(self, config):
         self.config = utils.load_config(config)
@@ -49,7 +48,7 @@ class Corintick:
             self.logger.info(f'Making new collection: {collection}')
         return self.db.get_collection(collection).with_options(opts)
 
-    def _query(self, uid, start, end, columns, collection, **metadata):
+    def _query(self, uid, start, end, columns, collection, max_docs, **metadata):
         # The following represent docs 1) containing query start,
         # OR 2) between query start and query end, OR 3) containing query end
         # TODO: Query multiple IDs by regex and/or metadata
@@ -68,11 +67,11 @@ class Corintick:
 
         self.logger.debug(query, projection)
         col = self.get_collection(collection)
-        cursor = col.find(query, projection).limit(self.MAX_DOCS).sort('start')
+        cursor = col.find(query, projection).limit(max_docs)
         return cursor
 
     def read(self, uid, start=MIN_TIME, end=MAX_TIME,
-             columns=None, collection=None, **metadata) -> Optional[pd.DataFrame]:
+             columns=None, collection=None, max_docs=20, **metadata) -> Optional[pd.DataFrame]:
         """
         Fetches data from Corintick's default collection.
         :param uid: Unique identifier of the timeseries
@@ -81,10 +80,11 @@ class Corintick:
         :param columns: Columns to retrieve
         :param collection: Collection to be used (optional)
         :param metadata: MongoDB query dictionary
+        :param max_docs: Limit number of documents to be retrieved from MongoDB per query
         """
         start = pd.Timestamp(start)
         end = pd.Timestamp(end)
-        cursor = self._query(uid, start, end, columns, collection, **metadata)
+        cursor = self._query(uid, start, end, columns, collection, max_docs, **metadata)
         exec_stats = cursor.explain()
         ndocs = exec_stats['executionStats']['nReturned']
 
@@ -93,6 +93,13 @@ class Corintick:
             return
 
         df = serialization.build_dataframe(cursor)
+        if ndocs >= max_docs:
+            doc_stats = self.list_uids(uid=uid)[0]
+            params = (ndocs, doc_stats['doc_count'], uid,
+                      doc_stats['start'].date(), doc_stats['end'].date())
+            msg = ('Only {} docs retrieved. There are {} docs for {}, ranging from {} to {}. '
+                   'Increase `max_docs` or change date range to retrieve more data.'.format(*params))
+            self.logger.warning(msg)
 
         if columns and ndocs:
             not_found = set(columns) - set(df.columns)
