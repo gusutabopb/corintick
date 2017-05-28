@@ -8,7 +8,7 @@ import pandas as pd
 import pymongo
 from bson import CodecOptions
 from pymongo import IndexModel
-from pymongo.results import BulkWriteResult
+from pymongo.results import InsertManyResult
 
 from . import serialization
 from . import utils
@@ -72,23 +72,17 @@ class Corintick:
 
         return df.ix[start:end]
 
-    def write(self, uid: str, df: pd.DataFrame, collection: Optional[str] = None, **metadata) -> BulkWriteResult:
+    def write(self, uid: str, df: pd.DataFrame, collection: Optional[str] = None, **metadata) -> InsertManyResult:
         """
-        Writes a single timeseries DataFrame to Corintick.
-
-        :param uid: String-like unique identifier for the timeseries
+        Writes a timeseries DataFrame to Corintick.
+        :param uid: Unique identifier for the timeseries
         :param df: DataFrame representing a timeseries segment
         :param collection: Collection to be used (optional)
-        :param metadata: Dictionary-like object containing metadata about
-                         the underlying streamers, such as streamers source, etc.
-        :return: None
+        :param metadata: Timeseries metadata such as exchange, source, etc.
         """
         self._validate_dates(uid, df, collection)
-        bulk = self._get_collection(collection).initialize_ordered_bulk_op()
         docs = serialization.make_bson_docs(uid, df, metadata)
-        for doc in docs:
-            bulk.insert(doc)
-        result = bulk.execute()
+        result = self._get_collection().insert_many(docs)
         return result
 
     def list_uids(self, uid: Optional[str] = None, collection: Optional[str] = None) -> Sequence[Mapping]:

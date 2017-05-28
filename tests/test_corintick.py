@@ -28,8 +28,8 @@ def test_simple_write(api):
     print(df2.head())
     r1 = api.write(uid1, df1, source='Yahoo Finance')
     r2 = api.write(uid2, df2, source='Quandl')
-    assert r1['nInserted']
-    assert r2['nInserted']
+    assert r1.acknowledged
+    assert r2.acknowledged
     assert api.db.corintick.count() == 2
 
 
@@ -60,7 +60,7 @@ def test_write_low_compression_data(api):
     df = pd.DataFrame(index=ix.index[:10 ** 5],
                       data={i: np.arange(10 ** 5) for i in range(100)})
     result = api.write('LCDF', df)
-    assert result['nInserted'] == 3
+    assert len(result.inserted_ids) == 3
     df = api.read('LCDF')
     assert len(df) == 100000
 
