@@ -1,7 +1,18 @@
 general:
   branches:
     only:
-     - master
+     - circleci
 machine:
   python:
     version: 3.6.1
+
+dependencies:
+  pre:
+    - pip install pytest pyyaml
+    - pip install git+git://github.com/rgkimball/pandas-datareader.git@fix-yahoo
+
+test:
+  override:
+    - pwd
+    - cd tests && pytest -s  
+    - exit 0
