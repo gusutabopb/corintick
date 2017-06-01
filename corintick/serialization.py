@@ -1,6 +1,7 @@
 """
 Contains all the serialization/compression related functions
 """
+import datetime
 import hashlib
 import io
 import logging
@@ -85,8 +86,11 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
 
     mem_usage = df.memory_usage().sum()
     df = df.sort_index(ascending=True)
+
     if df.index.tzinfo is None:
-        logger.warning('Inserting timezone-naive DatetimeIndex')
+        if not all(ix.time() == datetime.time(0, 0) for ix in df.index[:100]):
+            # Issue warining only if DataFrame doesn't look like EOD based.
+            logger.warning('DatetimeIndex is timezone-naive.')
         offset = None
     else:
         offset = df.index.tzinfo._offset.seconds / 3600

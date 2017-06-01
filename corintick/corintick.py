@@ -150,8 +150,6 @@ class Corintick:
     def _validate_dates(self, uid: str, df: pd.DataFrame, collection: str) -> None:
         """Checks whether new DataFrame has date conflicts with existing documents"""
         tz_aware = True if df.index.tzinfo else False
-        if not tz_aware:
-            self.logger.warning('DatetimeIndex is timezone-naive.')
         col = self._get_collection(collection, tz_aware=tz_aware)
         docs = col.find({'uid': uid}, {'uid': 1, 'start': 1, 'end': 1})
         df = df.sort_index()
