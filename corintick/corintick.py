@@ -27,6 +27,7 @@ class Corintick:
         self.db = self.client.get_database(**self.config['database'])
         self.default_collection = self.config['collections'][0]
         self.default_codec_opts = dict(document_class=OrderedDict, tz_aware=True)
+        self.max_docs = 20
         for collection in self.config['collections']:
             self._make_indexes(collection)
 
@@ -35,7 +36,7 @@ class Corintick:
         return self.db.collection_names()
 
     def read(self, uid, start=MIN_TIME, end=MAX_TIME,
-             columns=None, collection=None, max_docs=20, **metadata) -> Optional[pd.DataFrame]:
+             columns=None, collection=None, max_docs=None, **metadata) -> Optional[pd.DataFrame]:
         """
         Fetches data from Corintick's default collection.
         :param uid: Unique identifier of the timeseries
@@ -44,11 +45,12 @@ class Corintick:
         :param columns: Columns to retrieve
         :param collection: Collection to be used (optional)
         :param metadata: MongoDB query dictionary
-        :param max_docs: Limit number of documents to be retrieved from MongoDB per query
+        :param max_docs: Limit number of documents to be retrieved from MongoDB per query (defaults to self.max_docs)
         """
+        _max_docs = self.max_docs if max_docs is None else max_docs
         start = pd.Timestamp(start)
         end = pd.Timestamp(end)
-        cursor = self._query(uid, start, end, columns, collection, max_docs, **metadata)
+        cursor = self._query(uid, start, end, columns, collection, _max_docs, **metadata)
         exec_stats = cursor.explain()
         ndocs = exec_stats['executionStats']['nReturned']
 
@@ -57,12 +59,13 @@ class Corintick:
             return
 
         df = serialization.build_dataframe(cursor)
-        if ndocs >= max_docs:
-            doc_stats = self.list_uids(uid=uid)[0]
+        if max_docs and ndocs >= max_docs:
+            doc_stats = self.list_uids(uid=uid, collection=collection)[0]
             params = (ndocs, doc_stats['doc_count'], uid,
                       doc_stats['start'].date(), doc_stats['end'].date())
             msg = ('Only {} docs retrieved. There are {} docs for {}, ranging from {} to {}. '
-                   'Increase `max_docs` or change date range to retrieve more data.'.format(*params))
+                   'Increase `max_docs` or change date range to retrieve more data. '
+                   'Setting `max_docs` to 0 will fetch an unlimited number of documents.'.format(*params))
             self.logger.warning(msg)
 
         if columns and ndocs:
