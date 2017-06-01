@@ -158,8 +158,6 @@ def _build_dataframe(doc: SON) -> pd.DataFrame:
     """
     Builds DataFrame from passed BSON document. Input BSON document must
     match schema defined at `make_bson_doc`.
-    :param doc: BSON document
-    :return: DataFrame
     """
     index = pd.Index(_deserialize_array(doc['index']))
     if doc['metadata']['utc_offset']:
@@ -172,10 +170,27 @@ def _build_dataframe(doc: SON) -> pd.DataFrame:
 
 
 def build_dataframe(docs: Iterable[SON]) -> pd.DataFrame:
-    """
-    Concatenates multiple documents of the same DataFrame
-    :param docs:
-    :return:
-    """
-    df: pd.DataFrame = pd.concat([_build_dataframe(doc) for doc in docs])
-    return df.sort_index()
+    """Concatenates multiple documents of the same DataFrame"""
+
+    def fix_column_ordering(col_list: Sequence[list]):
+        """Fixes pd.concat column ordering"""
+        final = col_list[0]
+        for cols in col_list[1:]:
+            if all(c in final for c in cols):
+                continue
+            new_cols = set(cols) - set(final)
+            new_cols = sorted(new_cols, key=lambda c: cols.index(c))
+            for c in new_cols:
+                try:
+                    next_item = cols[cols.index(c) + 1]
+                except IndexError:
+                    final.append(c)
+                else:
+                    final.insert(final.index(next_item), c)
+        return final
+
+    dfs = [_build_dataframe(doc) for doc in docs]
+    df: pd.DataFrame = pd.concat(dfs)
+    cols = fix_column_ordering([list(df.columns) for df in dfs])
+    df = df.reindex(columns=cols).sort_index().copy()
+    return df
