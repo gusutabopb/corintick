@@ -82,7 +82,7 @@ class Corintick:
         """
         self._validate_dates(uid, df, collection)
         docs = serialization.make_bson_docs(uid, df, metadata)
-        result = self._get_collection().insert_many(docs)
+        result = self._get_collection(collection).insert_many(docs)
         return result
 
     def list_uids(self, uid: Optional[str] = None, collection: Optional[str] = None) -> Sequence[Mapping]:
