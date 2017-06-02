@@ -13,7 +13,7 @@ See installation instructions [here](https://docs.mongodb.com/manual/installatio
 Corintick itself can be installed with `pip`:
 
 ```bash
-$ pip install git+https://github.com/plugaai/pytrthree
+$ pip install git+https://github.com/plugaai/corintick
 ```
 
 
@@ -30,6 +30,7 @@ database:
   name: corintick
 collections:
   - corintick
+  - orderbook
 ```
 
 In case your MongoDB setup requires authentication, add the following to your configuration file:
@@ -80,7 +81,7 @@ corin.write('7203.T', df1, source='Quandl', country='Japan')
 The first argument passed to `corintick.write` is an UID (universal identifier)
  and must be unique for each timeseries inserted in a given collection. 
 The second argument is the dataframe to be inserted. 
-The remaining keyword arguments optional metadata tags that can be attached to the 
+The remaining keyword arguments are optional metadata tags that can be attached to the 
 dataframe/document for querying.
 
 
@@ -142,19 +143,19 @@ In case you need to store two different types of data for a same UID over an ove
 time frame (i.e. trade data and order book data for a given stock), you should separate 
 the two different types of data into different collections.
 
-The current collection can be checked by the `Corintick.collection` property:
+The default collection is the first one listed in the configuration file and  
+can be checked by the `Corintick.default_collection` property:
 
 ```python
 >>> corin.collection
 Collection(Database(MongoClient(host=['localhost:27017'], document_class=dict, tz_aware=False, connect=True), 'corintick'), 'corintick')
 ```
 
-The current collection can be changed by assigning a string to `Corintick.collection`. 
-However, such collection must be previously defined in the Corintick configuration file:
+The default collection can be changed by assigning a string to `Corintick.default_collection`. 
+This works even if the new collection is not listed in your configuration file:
 
 ```python
 >>> corin.collection = 'another_collection'
-CorintickValidationError: Collection doesn't exist. Please add it to the config file.
 ```
 
 Collections can also be changed on a method call basis, without changing 
