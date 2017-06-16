@@ -204,14 +204,10 @@ Corintick aimed from the beggining to be a column-based data storage.
 ## Contributing
 
 To contribute, fork the repository on GitHub, make your changes and 
-submit a pull request :)
-Pytrthree is not a mature project yet, so just simply raising issues is 
+submit a pull request.  
+Corintick is not a mature project yet, so just simply raising issues is 
 also greatly appreciated :)
 
 ### Extending Corintick
 
 **TODO**
-
-### Future goals
- - Implement a Python agnostic HTTP API so that clients don't need 
-   the Python/Corintick installed locally
