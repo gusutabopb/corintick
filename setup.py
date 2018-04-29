@@ -3,9 +3,6 @@ import sys
 from setuptools import setup
 from setuptools.command.install import install
 
-if sys.version_info.major != 3:
-    sys.exit('Support Python 3 only')
-
 
 class Installer(install):
     pass
@@ -22,7 +19,7 @@ setup(name='corintick',
       author_email='gusutabopb@gmail.com',
       url='https://github.com/plugaai/corintick',
       packages=['corintick'],
-      # cmdclass={'install': Installer},
+      python_requires='>=3.6',
       license='GPL',
       install_requires=['lz4>=0.9.4',
                         'pandas>=0.19', 'pandas-datareader',
