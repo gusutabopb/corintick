@@ -143,7 +143,7 @@ In case you need to store two different types of data for a same UID over an ove
 time frame (i.e. trade data and order book data for a given stock), you should separate 
 the two different types of data into different collections.
 
-The default collection is the first one listed in the configuration file and  
+The default collection is the first one listed in the configuration file and 
 can be checked by the `Corintick.default_collection` property:
 
 ```python
