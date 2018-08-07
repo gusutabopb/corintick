@@ -1,9 +1,0 @@
----
-host:
-  host: localhost
-  port: 27017
-log: '~/plugaai/_logs'
-database:
-  name: corintick_test
-collections:
-  - corintick
