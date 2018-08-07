@@ -26,7 +26,7 @@ setup(name='corintick',
       extras_require={
           'test': [
               'pytest',
-              'flake8'
+              'flake8',
               'quandl',
           ]
       },
