@@ -2,6 +2,7 @@
 Functions for retrieving data from Corintick
 """
 import logging
+import warnings
 from pathlib import Path
 from typing import Optional, Sequence, Mapping
 
@@ -83,7 +84,7 @@ class Corintick:
         df = serialization.build_dataframe(cursor)
         if max_docs and ndocs >= max_docs:
             doc_stats = self.list_uids(uid=uid, collection=collection)[0]
-            self.logger.warning(
+            warnings.warn(
                 f"Only {ndocs} docs retrieved. There are {doc_stats['doc_count']} docs for {uid}, "
                 f"ranging from {doc_stats['start'].date()} to {doc_stats['end'].date()}. "
                 f"Increase `max_docs` or change date range to retrieve more data. "
@@ -93,7 +94,7 @@ class Corintick:
         if columns and ndocs:
             not_found = set(columns) - set(df.columns)
             if not_found:
-                self.logger.warning(f'The following requested columns were not found: {not_found}')
+                warnings.warn(f'The following requested columns were not found: {not_found}')
 
         return df.loc[start:end]
 
