@@ -42,7 +42,7 @@ def _serialize_array(arr: np.ndarray) -> bytes:
 
 def _deserialize_array(column: Mapping) -> np.ndarray:
     """
-    Takes raw binary compressesed/serialized retrieved from MongoDB
+    Takes raw binary compressed/serialized retrieved from MongoDB
     and decompresses/deserializes it, returning the original Numpy array
     :param column: Input column
     :return: Numpy array
@@ -58,6 +58,7 @@ def _make_bson_column(col: Union[pd.Series, pd.DatetimeIndex]) -> Mapping:
     """
     Compresses dataframe's column/index and returns a dictionary
     with BSON blob column and some metadata.
+
     :param col: Input column/index
     :return: Column data dictionary
     """
@@ -89,7 +90,7 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
 
     if df.index.tzinfo is None:
         if not all(ix.time() == datetime.time(0, 0) for ix in df.index[:100]):
-            # Issue warining only if DataFrame doesn't look like EOD based.
+            # Issue warning only if DataFrame doesn't look like EOD based.
             logger.warning('DatetimeIndex is timezone-naive.')
         offset = None
     else:
@@ -108,7 +109,6 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
     compression_ratio = binary_size / mem_usage
     if binary_size > 0.95 * MAX_BSON_SIZE:
         msg = f'Binary data size is too large ({binary_size:,} / {compression_ratio:.1%})'
-        logger.warning(msg)
         raise InvalidBSON(msg, compression_ratio)
     logger.debug(f'{uid} document: {binary_size:,} bytes ({compression_ratio:.1%}), {nrows} rows')
     add_meta = {'nrows': nrows, 'binary_size': binary_size, 'utc_offset': offset}
@@ -153,7 +153,7 @@ def make_bson_docs(uid, df, metadata, max_size=MAX_BSON_SIZE * 4) -> Sequence[SO
         except InvalidBSON as e:
             new_max_size = np.floor(0.95 * MAX_BSON_SIZE / e.args[1])
             assert new_max_size > MAX_BSON_SIZE * 0.8
-            logger.warning(f'Reducing max DataFrame split max_size to {new_max_size:,}')
+            logger.debug(f'Reducing max DataFrame split max_size to {new_max_size:,.0f}')
             return make_bson_docs(uid, df, metadata, max_size=new_max_size)
     return docs
 

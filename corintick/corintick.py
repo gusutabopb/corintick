@@ -49,17 +49,26 @@ class Corintick:
     def collections(self):
         return self.db.collection_names()
 
-    def read(self, uid, start=MIN_TIME, end=MAX_TIME,
-             columns=None, collection=None, max_docs=None, **metadata) -> Optional[pd.DataFrame]:
-        """
-        Fetches data from Corintick's default collection.
+    def read(
+            self,
+            uid,
+            start=MIN_TIME,
+            end=MAX_TIME,
+            columns=None,
+            collection=None,
+            max_docs=None,
+            **metadata
+    ) -> Optional[pd.DataFrame]:
+        """Fetches data from Corintick's default collection.
+
         :param uid: Unique identifier of the timeseries
         :param start: ISO-8601 string or datetime-like object
         :param end: ISO-8601 string or datetime-like object
         :param columns: Columns to retrieve
         :param collection: Collection to be used (optional)
         :param metadata: MongoDB query dictionary
-        :param max_docs: Limit number of documents to be retrieved from MongoDB per query (defaults to self.max_docs)
+        :param max_docs: Limit number of documents to be retrieved
+            from MongoDB per query (defaults to self.max_docs)
         """
         _max_docs = self.max_docs if max_docs is None else max_docs
         start = pd.Timestamp(start)
@@ -75,12 +84,12 @@ class Corintick:
         df = serialization.build_dataframe(cursor)
         if max_docs and ndocs >= max_docs:
             doc_stats = self.list_uids(uid=uid, collection=collection)[0]
-            params = (ndocs, doc_stats['doc_count'], uid,
-                      doc_stats['start'].date(), doc_stats['end'].date())
-            msg = ('Only {} docs retrieved. There are {} docs for {}, ranging from {} to {}. '
-                   'Increase `max_docs` or change date range to retrieve more data. '
-                   'Setting `max_docs` to 0 will fetch an unlimited number of documents.'.format(*params))
-            self.logger.warning(msg)
+            self.logger.warning(
+                f"Only {ndocs} docs retrieved. There are {doc_stats['doc_count']} docs for {uid}, "
+                f"ranging from {doc_stats['start'].date()} to {doc_stats['end'].date()}. "
+                f"Increase `max_docs` or change date range to retrieve more data. "
+                f"Setting `max_docs` to 0 will fetch an unlimited number of documents."
+            )
 
         if columns and ndocs:
             not_found = set(columns) - set(df.columns)
@@ -89,9 +98,15 @@ class Corintick:
 
         return df.loc[start:end]
 
-    def write(self, uid: str, df: pd.DataFrame, collection: Optional[str] = None, **metadata) -> InsertManyResult:
-        """
-        Writes a timeseries DataFrame to Corintick.
+    def write(
+            self,
+            uid: str,
+            df: pd.DataFrame,
+            collection: Optional[str] = None,
+            **metadata
+    ) -> InsertManyResult:
+        """Writes a timeseries DataFrame to Corintick.
+
         :param uid: Unique identifier for the timeseries
         :param df: DataFrame representing a timeseries segment
         :param collection: Collection to be used (optional)
@@ -102,9 +117,13 @@ class Corintick:
         result = self._get_collection(collection).insert_many(docs)
         return result
 
-    def list_uids(self, uid: Optional[str] = None, collection: Optional[str] = None) -> Sequence[Mapping]:
-        """
-        Returns list of UIDs contained in collection
+    def list_uids(
+            self,
+            uid: Optional[str] = None,
+            collection: Optional[str] = None
+    ) -> Sequence[Mapping]:
+        """Returns list of UIDs contained in collection
+
         :param uid: String-like unique identifier for the timeseries
         :param collection: Collection to be used (optional)
         """
@@ -120,15 +139,15 @@ class Corintick:
         pipeline = [{"$project": project}, {"$group": group}]
         if uid:
             pipeline = [{'$match': {'uid': uid}}] + pipeline
-        result = list(col.aggregate(pipeline))
-        return result
+        return list(col.aggregate(pipeline))
 
     def list_metadata(self):
         """Returns document statistics grouped by metadata parameters"""
         # TODO: Implement
-        raise NotImplementedError
+        raise NotImplementedError()
 
-    def _query(self, uid, start, end, columns, collection, max_docs, **metadata) -> pymongo.cursor.Cursor:
+    def _query(self, uid, start, end, columns, collection,
+               max_docs, **metadata) -> pymongo.cursor.Cursor:
         # The following represent docs 1) containing query start,
         # OR 2) between query start and query end, OR 3) containing query end
         # TODO: Query multiple IDs by regex and/or metadata
@@ -143,7 +162,7 @@ class Corintick:
         if columns is None:
             projection.update({'columns': 1})
         else:
-            projection.update({'columns.{}'.format(col): 1 for col in columns})
+            projection.update({f'columns.{col}': 1 for col in columns})
 
         self.logger.debug(query, projection)
         col = self._get_collection(collection)
@@ -151,17 +170,21 @@ class Corintick:
         return cursor
 
     def _make_indexes(self, collection: str) -> None:
-        """
-        Makes indexes used by Corintick.
+        """Makes indexes used by Corintick.
         Metadata is not used for querying and therefore not indexed.
-        Making `ix1` unique is meant to avoid accidentaly inserting duplicate documents.
+        Making `ix1` unique is meant to avoid accidentally inserting duplicate documents.
         """
         ix1 = IndexModel([('uid', 1), ('start', -1), ('end', -1)], unique=True, name='default')
         ix2 = IndexModel([('uid', 1), ('end', -1), ('start', -1)], name='reverse')
         col = self._get_collection(collection)
         col.create_indexes([ix1, ix2])
 
-    def _validate_dates(self, uid: str, df: pd.DataFrame, collection: str) -> None:
+    def _validate_dates(
+            self,
+            uid: str,
+            df: pd.DataFrame,
+            collection: str
+    ) -> None:
         """Checks whether new DataFrame has date conflicts with existing documents"""
         tz_aware = True if df.index.tzinfo else False
         col = self._get_collection(collection, tz_aware=tz_aware)
@@ -169,15 +192,20 @@ class Corintick:
         df = df.sort_index()
         start = df.index[0]
         end = df.index[-1]
-        for doc in sorted(docs, key=lambda x: x['start']):
-            if end < doc['start'] or start > doc['end']:
+        for d in sorted(docs, key=lambda x: x['start']):
+            if end < d['start'] or start > d['end']:
                 continue
-            else:
-                msg = 'Invalid dates. Conflicts with {} ({}: {}~{}) | Dataframe {}~{}'
-                msg = msg.format(doc['_id'], doc['uid'], doc['start'], doc['end'], start, end)
-                raise ValidationError(msg)
+            raise ValueError(
+                "Invalid dates. "
+                f"Conflicts with {d['_id']} ({d['uid']}: {d['start']}~{d['end']})"
+                f"Dataframe {start}~{end}"
+            )
 
-    def _get_collection(self, collection: Optional[str] = None, **options) -> pymongo.collection.Collection:
+    def _get_collection(
+            self,
+            collection: Optional[str] = None,
+            **options
+    ) -> pymongo.collection.Collection:
         """Parses codec options and returns MongoDB collection objection"""
         opts = {**self.default_codec_opts, **options}
         if 'tzinfo' in opts and not opts['tz_aware']:
