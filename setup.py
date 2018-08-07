@@ -6,7 +6,7 @@ with open('README.md', 'r') as f:
 
 setup(name='corintick',
       version='0.1.0',
-      description='Column-based datastore for historical timeseries streamers',
+      description='Column-based datastore for historical timeseries',
       long_description=long_description,
       author='Gustavo Bezerra',
       author_email='gusutabopb@gmail.com',
@@ -26,6 +26,7 @@ setup(name='corintick',
       extras_require={
           'test': [
               'pytest',
+              'pytest-cov',
               'flake8',
               'quandl',
           ]
