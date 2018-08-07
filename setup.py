@@ -20,7 +20,6 @@ setup(name='corintick',
           'pymongo>=3.6',
           'numpy',
           'pytz',
-          'ruamel.yaml',
           'msgpack-python'
       ],
       extras_require={

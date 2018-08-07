@@ -3,12 +3,10 @@ Functions for retrieving data from Corintick
 """
 import logging
 import warnings
-from pathlib import Path
 from typing import Optional, Sequence, Mapping
 
 import pandas as pd
 import pymongo
-import ruamel.yaml as yaml
 from bson import CodecOptions
 from pymongo import IndexModel
 from pymongo.results import InsertManyResult
@@ -16,30 +14,24 @@ from pymongo.results import InsertManyResult
 from . import serialization
 
 
-def load_config(config_path):
-    config = {
-        'host': {'host': 'localhost', 'port': 27017},
-        'database': 'corintick',
-        'collections': ['corintick']
-    }
-    if config_path is None:
-        return config
-    with Path(config_path).expanduser().open() as f:
-        config.update(yaml.load(f))
-        return config
-
-
 class Corintick:
-    def __init__(self, config=None, db=None):
-        self.config = load_config(config)
+    def __init__(
+            self,
+            host='localhost',
+            port=27017,
+            db=None,
+            collection='corintick',
+            username=None,
+            password=None,
+    ):
         self.logger = logging.getLogger('corintick')
-        self.client = pymongo.MongoClient(**self.config['host'])
-        if 'auth' in self.config:
-            self.client.admin.authenticate(**self.config['auth'])
-        self.db = self.client.get_database(db or self.config['database'])
-        self.default_collection = self.config['collections'][0]
+        self.client = pymongo.MongoClient(host=host, port=port)
+        if username and password:
+            self.client.admin.authenticate(name=username, password=password)
+        self.db = self.client.get_database(db or 'corintick')
+        self.default_collection = collection
         self.max_docs = 20
-        for collection in self.config['collections']:
+        for collection in self.collections:
             self._make_indexes(collection)
 
     @property
@@ -206,10 +198,9 @@ class Corintick:
         """Parses codec options and returns MongoDB collection objection"""
         if collection is None:
             collection = self.default_collection
-        elif collection not in self.config['collections']:
+        elif collection not in self.collections:
             self._make_indexes(collection)
             self.logger.info(f'Making new collection: {collection}')
-            self.config['collections'].append(collection)
         opts = CodecOptions(tz_aware=tz_aware)
         return self.db.get_collection(collection).with_options(opts)
 

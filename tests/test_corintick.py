@@ -18,7 +18,6 @@ logger.setLevel(logging.DEBUG)
 @pytest.fixture(scope="module")
 def api():
     api = Corintick(db='corintick_test')
-    print(api.config)
     yield api
     assert 'corintick_test' in api.client.database_names()
     api.client.drop_database('corintick_test')
