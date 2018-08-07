@@ -1,5 +1,21 @@
 corintick
 =========
+.. image:: https://img.shields.io/circleci/project/github/plugaai/corintick.svg
+   :target: https://circleci.com/gh/plugaai/corintick
+   :alt: CI status
+
+.. image:: https://img.shields.io/codecov/c/github/plugaai/corintick.svg
+   :target: https://codecov.io/gh/plugaai/corintick
+   :alt: Coverage
+
+.. image:: https://img.shields.io/pypi/v/corintick.svg
+   :target: https://pypi.python.org/pypi/corintick
+   :alt: PyPI package
+
+.. image:: https://img.shields.io/pypi/pyversions/corintick.svg
+   :target: https://pypi.python.org/pypi/corintick
+   :alt: Supported Python versions
+
 
 Column-based datastore for historical timeseries data. Corintick is
 designed mainly to store `pandas <http://pandas.pydata.org/>`__

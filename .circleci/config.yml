@@ -21,9 +21,9 @@ jobs:
       - run:
           name: Run test
           command: make test
-#      - run:
-#          name: Upload coverage report to Codecov
-#          command: bash <(curl -s https://codecov.io/bash)
+      - run:
+          name: Upload coverage report to Codecov
+          command: bash <(curl -s https://codecov.io/bash)
   build-3.6:
     <<: *build
     docker:
