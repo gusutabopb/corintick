@@ -176,8 +176,7 @@ class Corintick:
         """
         ix1 = IndexModel([('uid', 1), ('start', -1), ('end', -1)], unique=True, name='default')
         ix2 = IndexModel([('uid', 1), ('end', -1), ('start', -1)], name='reverse')
-        col = self._get_collection(collection)
-        col.create_indexes([ix1, ix2])
+        self.db.get_collection(collection).create_indexes([ix1, ix2])
 
     def _validate_dates(
             self,
@@ -214,6 +213,7 @@ class Corintick:
         elif collection not in self.config['collections']:
             self._make_indexes(collection)
             self.logger.info(f'Making new collection: {collection}')
+            self.config['collections'].append(collection)
         opts = CodecOptions(tz_aware=tz_aware)
         return self.db.get_collection(collection).with_options(opts)
 
