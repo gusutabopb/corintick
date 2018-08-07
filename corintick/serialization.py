@@ -159,41 +159,16 @@ def make_bson_docs(uid, df, metadata, max_size=MAX_BSON_SIZE * 4) -> Sequence[SO
     return docs
 
 
-def _build_dataframe(doc: SON) -> pd.DataFrame:
-    """
-    Builds DataFrame from passed BSON document. Input BSON document must
-    match schema defined at `make_bson_doc`.
-    """
-    index = pd.Index(_deserialize_array(doc['index']))
-    index = index.tz_localize(pytz.FixedOffset(doc['metadata']['utc_offset'] or 0))
-    columns = [_deserialize_array(col) for col in doc['columns'].values()]
-    names = doc['columns'].keys()
-    df = pd.DataFrame(index=index, data=dict(zip(names, columns)))
-    return df
-
-
 def build_dataframe(docs: Iterable[SON]) -> pd.DataFrame:
-    """Concatenates multiple documents of the same DataFrame"""
+    """Builds DataFrame from passed BSON documents.
+    Input BSON document must match schema defined at ``make_bson_doc``.
+    """
+    dfs = []
+    for doc in docs:
+        index = pd.Index(_deserialize_array(doc['index']))
+        index = index.tz_localize(pytz.FixedOffset(doc['metadata']['utc_offset'] or 0))
+        columns = [_deserialize_array(col) for col in doc['columns'].values()]
+        names = doc['columns'].keys()
+        dfs.append(pd.DataFrame(index=index, data=dict(zip(names, columns))))
 
-    def fix_column_ordering(col_list: Sequence[list]):
-        """Fixes pd.concat column ordering"""
-        final = col_list[0]
-        for cols in col_list[1:]:
-            if all(c in final for c in cols):
-                continue
-            new_cols = set(cols) - set(final)
-            new_cols = sorted(new_cols, key=lambda c: cols.index(c))
-            for c in new_cols:
-                try:
-                    next_item = cols[cols.index(c) + 1]
-                except IndexError:
-                    final.append(c)
-                else:
-                    final.insert(final.index(next_item), c)
-        return final
-
-    dfs = [_build_dataframe(doc) for doc in docs]
-    df: pd.DataFrame = pd.concat(dfs)
-    cols = fix_column_ordering([list(df.columns) for df in dfs])
-    df = df.reindex(columns=cols).sort_index().copy()
-    return df
+    return pd.concat(dfs, sort=False).sort_index()
