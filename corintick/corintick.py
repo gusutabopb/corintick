@@ -40,7 +40,6 @@ class Corintick:
             self.client.admin.authenticate(**self.config['auth'])
         self.db = self.client.get_database(db or self.config['database'])
         self.default_collection = self.config['collections'][0]
-        self.default_codec_opts = dict(tz_aware=True)
         self.max_docs = 20
         for collection in self.config['collections']:
             self._make_indexes(collection)
@@ -204,19 +203,15 @@ class Corintick:
     def _get_collection(
             self,
             collection: Optional[str] = None,
-            **options
+            tz_aware=False,
     ) -> pymongo.collection.Collection:
         """Parses codec options and returns MongoDB collection objection"""
-        opts = {**self.default_codec_opts, **options}
-        if 'tzinfo' in opts and not opts['tz_aware']:
-            _ = opts.pop('tzinfo')
-        opts = CodecOptions(**opts)
-
         if collection is None:
             collection = self.default_collection
         elif collection not in self.config['collections']:
             self._make_indexes(collection)
             self.logger.info(f'Making new collection: {collection}')
+        opts = CodecOptions(tz_aware=tz_aware)
         return self.db.get_collection(collection).with_options(opts)
 
 

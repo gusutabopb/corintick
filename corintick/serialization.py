@@ -6,13 +6,14 @@ import hashlib
 import io
 import logging
 import re
-from collections import OrderedDict
+import warnings
 from typing import Iterable, Sequence, Union, Mapping
 
 import lz4.block
 import numpy as np
 import pandas as pd
 import msgpack
+import pytz
 from bson import Binary, SON, InvalidBSON
 
 logger = logging.getLogger('corintick')
@@ -91,10 +92,10 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
     if df.index.tzinfo is None:
         if not all(ix.time() == datetime.time(0, 0) for ix in df.index[:100]):
             # Issue warning only if DataFrame doesn't look like EOD based.
-            logger.warning('DatetimeIndex is timezone-naive.')
+            warnings.warn('DatetimeIndex is timezone-naive. Assuming to be in UTC.')
         offset = None
     else:
-        offset = df.index.tzinfo._offset.seconds / 3600
+        offset = df.index.tzinfo._utcoffset.total_seconds() / 60
 
     # Remove invalid MongoDB field characters
     df = df.rename(columns=lambda x: re.sub('\.', '', str(x)))
@@ -164,12 +165,10 @@ def _build_dataframe(doc: SON) -> pd.DataFrame:
     match schema defined at `make_bson_doc`.
     """
     index = pd.Index(_deserialize_array(doc['index']))
-    if doc['metadata']['utc_offset']:
-        offset = int(doc['metadata']['utc_offset'] * 3600)
-        index = index.tz_localize(offset) + pd.Timedelta(seconds=offset)
+    index = index.tz_localize(pytz.FixedOffset(doc['metadata']['utc_offset'] or 0))
     columns = [_deserialize_array(col) for col in doc['columns'].values()]
     names = doc['columns'].keys()
-    df = pd.DataFrame(index=index, data=OrderedDict(zip(names, columns)))
+    df = pd.DataFrame(index=index, data=dict(zip(names, columns)))
     return df
 
 
