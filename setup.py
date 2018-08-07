@@ -28,7 +28,6 @@ setup(name='corintick',
               'pytest',
               'pytest-cov',
               'flake8',
-              'quandl',
           ]
       },
       classifiers=[
