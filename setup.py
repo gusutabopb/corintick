@@ -34,7 +34,7 @@ setup(name='corintick',
           'Intended Audience :: Science/Research',
           'Intended Audience :: Financial and Insurance Industry',
           'Development Status :: 4 - Beta',
-          'Programming Language :: Python :: 3.6'
+          'Programming Language :: Python :: 3.6',
           'Programming Language :: Python :: 3.7',
           "Topic :: Database",
           "Topic :: Database :: Front-Ends",
