@@ -96,3 +96,5 @@ _*/
 *.zip
 *.pkl
 .DS_Store
+rst2html.css
+README.html
