@@ -185,9 +185,8 @@ class Corintick:
             if end < d['start'] or start > d['end']:
                 continue
             raise ValueError(
-                "Invalid dates. "
-                f"Conflicts with {d['_id']} ({d['uid']}: {d['start']}~{d['end']})"
-                f"Dataframe {start}~{end}"
+                f"Invalid dates ({start} ~ {end}). "
+                f"Conflicts with document {d['_id']} ({d['uid']}: {d['start']}~{d['end']})"
             )
 
     def _get_collection(
@@ -203,7 +202,3 @@ class Corintick:
             self.logger.info(f'Making new collection: {collection}')
         opts = CodecOptions(tz_aware=tz_aware)
         return self.db.get_collection(collection).with_options(opts)
-
-
-class ValidationError(ValueError):
-    pass
