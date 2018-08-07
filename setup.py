@@ -1,12 +1,5 @@
 #!/usr/bin/env python
-import sys
 from setuptools import setup
-from setuptools.command.install import install
-
-
-class Installer(install):
-    pass
-
 
 with open('README.md', 'r') as f:
     long_description = f.read()
@@ -21,9 +14,22 @@ setup(name='corintick',
       packages=['corintick'],
       python_requires='>=3.6',
       license='GPL',
-      install_requires=['lz4>=0.9.4',
-                        'pandas>=0.19', 'pandas-datareader',
-                        'pymongo', 'numpy', 'quandl', 'msgpack-python'],
+      install_requires=[
+          'lz4>=1.0.0',
+          'pandas>=0.23',
+          'pymongo>=3.6',
+          'numpy',
+          'pytz',
+          'ruamel.yaml',
+          'msgpack-python'
+      ],
+      extras_require={
+          'test': [
+              'pytest',
+              'flake8'
+              'quandl',
+          ]
+      },
       classifiers=[
           'Intended Audience :: Developers',
           'Intended Audience :: Science/Research',
