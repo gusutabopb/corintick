@@ -9,7 +9,7 @@ import re
 from collections import OrderedDict
 from typing import Iterable, Sequence, Union, Mapping
 
-import lz4
+import lz4.block
 import numpy as np
 import pandas as pd
 import msgpack
