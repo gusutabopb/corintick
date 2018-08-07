@@ -15,9 +15,6 @@ from pymongo.results import InsertManyResult
 
 from . import serialization
 
-MIN_TIME = pd.Timestamp.min + pd.Timedelta(hours=48)
-MAX_TIME = pd.Timestamp.max - pd.Timedelta(hours=48)
-
 
 def load_config(config_path):
     config = {
@@ -52,8 +49,8 @@ class Corintick:
     def read(
             self,
             uid,
-            start=MIN_TIME,
-            end=MAX_TIME,
+            start=pd.Timestamp.min,
+            end=pd.Timestamp.max,
             columns=None,
             collection=None,
             max_docs=None,
@@ -70,10 +67,10 @@ class Corintick:
         :param max_docs: Limit number of documents to be retrieved
             from MongoDB per query (defaults to self.max_docs)
         """
-        _max_docs = self.max_docs if max_docs is None else max_docs
+        max_docs = max_docs or self.max_docs
         start = pd.Timestamp(start)
         end = pd.Timestamp(end)
-        cursor = self._query(uid, start, end, columns, collection, _max_docs, **metadata)
+        cursor = self._query(uid, start, end, columns, collection, max_docs, **metadata)
         exec_stats = cursor.explain()
         ndocs = exec_stats['executionStats']['nReturned']
 
@@ -166,8 +163,7 @@ class Corintick:
 
         self.logger.debug(query, projection)
         col = self._get_collection(collection)
-        cursor = col.find(query, projection).limit(max_docs)
-        return cursor
+        return col.find(query, projection).limit(max_docs)
 
     def _make_indexes(self, collection: str) -> None:
         """Makes indexes used by Corintick.

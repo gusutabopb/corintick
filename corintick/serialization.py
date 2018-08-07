@@ -7,7 +7,7 @@ import io
 import logging
 import re
 import warnings
-from typing import Iterable, Sequence, Union, Mapping
+from typing import Iterable, List, Union, Mapping
 
 import lz4.block
 import numpy as np
@@ -55,7 +55,7 @@ def _deserialize_array(column: Mapping) -> np.ndarray:
         return np.load(io.BytesIO(data))
 
 
-def _make_bson_column(col: Union[pd.Series, pd.DatetimeIndex]) -> Mapping:
+def _make_bson_column(col: Union[pd.Series, pd.DatetimeIndex]) -> SON:
     """
     Compresses dataframe's column/index and returns a dictionary
     with BSON blob column and some metadata.
@@ -123,8 +123,9 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
     return doc
 
 
-def make_bson_docs(uid, df, metadata, max_size=MAX_BSON_SIZE * 4) -> Sequence[SON]:
-    """
+def make_bson_docs(uid, df, metadata, max_size=MAX_BSON_SIZE * 4) -> List[SON]:
+    """Converts input DataFrame into BSON documents.
+
     Wrapper around ``_make_bson_doc``.
     Since BSON documents can't be larger than 16 MB, this function makes sure
     that the input DataFrame is properly split into smaller chunks that can be
@@ -138,7 +139,7 @@ def make_bson_docs(uid, df, metadata, max_size=MAX_BSON_SIZE * 4) -> Sequence[SO
     :return: List of BSON documents
     """
 
-    def split_dataframes(large_df: pd.DataFrame, size) -> Sequence[pd.DataFrame]:
+    def split_dataframes(large_df: pd.DataFrame, size) -> List[pd.DataFrame]:
         mem_usage = large_df.memory_usage().sum()
         split_num = np.ceil(mem_usage / size)
         return np.array_split(large_df, split_num)
