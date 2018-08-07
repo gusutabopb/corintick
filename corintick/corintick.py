@@ -1,32 +1,46 @@
 """
 Functions for retrieving data from Corintick
 """
-from collections import OrderedDict
+import logging
+from pathlib import Path
 from typing import Optional, Sequence, Mapping
 
 import pandas as pd
 import pymongo
+import ruamel.yaml as yaml
 from bson import CodecOptions
 from pymongo import IndexModel
 from pymongo.results import InsertManyResult
 
 from . import serialization
-from . import utils
 
 MIN_TIME = pd.Timestamp.min + pd.Timedelta(hours=48)
 MAX_TIME = pd.Timestamp.max - pd.Timedelta(hours=48)
 
 
+def load_config(config_path):
+    config = {
+        'host': {'host': 'localhost', 'port': 27017},
+        'database': 'corintick',
+        'collections': ['corintick']
+    }
+    if config_path is None:
+        return config
+    with Path(config_path).expanduser().open() as f:
+        config.update(yaml.load(f))
+        return config
+
+
 class Corintick:
-    def __init__(self, config):
-        self.config = utils.load_config(config)
-        self.logger = utils.make_logger('corintick', self.config)
+    def __init__(self, config=None, db=None):
+        self.config = load_config(config)
+        self.logger = logging.getLogger('pytrthree')
         self.client = pymongo.MongoClient(**self.config['host'])
         if 'auth' in self.config:
             self.client.admin.authenticate(**self.config['auth'])
-        self.db = self.client.get_database(**self.config['database'])
+        self.db = self.client.get_database(db or self.config['database'])
         self.default_collection = self.config['collections'][0]
-        self.default_codec_opts = dict(document_class=OrderedDict, tz_aware=True)
+        self.default_codec_opts = dict(tz_aware=True)
         self.max_docs = 20
         for collection in self.config['collections']:
             self._make_indexes(collection)
