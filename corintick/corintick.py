@@ -185,6 +185,8 @@ class Corintick:
             collection: str
     ) -> None:
         """Checks whether new DataFrame has date conflicts with existing documents"""
+        if not isinstance(df.index, pd.DatetimeIndex):
+            raise ValueError('DataFrame index is not DatetimeIndex')
         tz_aware = True if df.index.tzinfo else False
         col = self._get_collection(collection, tz_aware=tz_aware)
         docs = col.find({'uid': uid}, {'uid': 1, 'start': 1, 'end': 1})

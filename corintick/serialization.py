@@ -83,9 +83,6 @@ def _make_bson_doc(uid: str, df: pd.DataFrame, metadata) -> SON:
     :param metadata: Any BSON-able objects to be attached to document as metadata
     :return: BSON document
     """
-    if not isinstance(df.index, pd.DatetimeIndex):
-        raise ValueError('DataFrame index is not DatetimeIndex')
-
     mem_usage = df.memory_usage().sum()
     df = df.sort_index(ascending=True)
 
