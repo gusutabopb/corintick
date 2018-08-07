@@ -34,7 +34,7 @@ def load_config(config_path):
 class Corintick:
     def __init__(self, config=None, db=None):
         self.config = load_config(config)
-        self.logger = logging.getLogger('pytrthree')
+        self.logger = logging.getLogger('corintick')
         self.client = pymongo.MongoClient(**self.config['host'])
         if 'auth' in self.config:
             self.client.admin.authenticate(**self.config['auth'])
