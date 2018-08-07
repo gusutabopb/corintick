@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 from setuptools import setup
 
-with open('README.md', 'r') as f:
+with open('README.rst', 'r') as f:
     long_description = f.read()
 
 setup(name='corintick',
-      version='0.1.0',
+      version='0.2.0',
       description='Column-based datastore for historical timeseries',
       long_description=long_description,
       author='Gustavo Bezerra',
@@ -33,7 +33,7 @@ setup(name='corintick',
           'Intended Audience :: Developers',
           'Intended Audience :: Science/Research',
           'Intended Audience :: Financial and Insurance Industry',
-          'Development Status :: 3 - Alpha',
+          'Development Status :: 4 - Beta',
           'Programming Language :: Python :: 3.6'
           'Programming Language :: Python :: 3.7',
           "Topic :: Database",
